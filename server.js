@@ -23,16 +23,18 @@ app.get('/api/health', (req, res) => {
 
 // Timer callbacks
 function onTimerTick(room, remaining) {
-  broadcast(room, { type: 'timer', remaining });
+  broadcast(room, { type: 'timer_tick', remaining });
 }
 
 function onTimerEnd(room, onTick, onEnd) {
   const q = room.questions[room.currentQuestion];
+  const leaderboard = getLeaderboard(room);
   broadcast(room, {
     type: 'question_end',
     correctAnswer: q.answer,
-    leaderboard: getLeaderboard(room)
+    leaderboard
   });
+  broadcast(room, { type: 'leaderboard_update', leaderboard });
   room.state = 'leaderboard';
 
   // Advance to next question after 5 seconds
@@ -112,7 +114,7 @@ wss.on('connection', (ws) => {
         ws.send(JSON.stringify({ type: 'answer_result', ...result }));
         // Broadcast updated scores after answer
         broadcast(room, {
-          type: 'scores_update',
+          type: 'leaderboard_update',
           leaderboard: getLeaderboard(room)
         });
         break;

@@ -83,7 +83,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
   room.answeredThisRound = new Set();
 
   broadcast(room, {
-    type: 'question',
+    type: 'question_start',
     index: room.currentQuestion,
     total: room.questions.length,
     question: q.question,
@@ -129,8 +129,8 @@ function submitAnswer(room, playerId, answerIndex) {
   let points = 0;
   if (isCorrect) {
     const elapsed = (Date.now() - room.timerStartedAt) / 1000;
-    const timeBonus = Math.max(0, QUESTION_TIME_SECS - elapsed);
-    points = Math.round(100 + timeBonus * 10);
+    const remainingSeconds = Math.max(0, QUESTION_TIME_SECS - elapsed);
+    points = Math.round(1000 * remainingSeconds / QUESTION_TIME_SECS);
     player.score += points;
   }
 
