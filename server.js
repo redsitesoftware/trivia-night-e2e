@@ -21,6 +21,24 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// POST /api/rooms – create a room, return join code and host player token
+app.post('/api/rooms', (req, res) => {
+  const hostName = (req.body && req.body.name) ? String(req.body.name).trim() : 'Host';
+  const { room, playerId } = createRoom(null, hostName);
+  res.status(201).json({ code: room.code, playerId });
+});
+
+// POST /api/rooms/:code/join – join a room, return player token
+app.post('/api/rooms/:code/join', (req, res) => {
+  const { code } = req.params;
+  const playerName = (req.body && req.body.name) ? String(req.body.name).trim() : 'Player';
+  const result = joinRoom(code, null, playerName);
+  if (result.error) {
+    return res.status(400).json({ error: result.error });
+  }
+  res.status(200).json({ playerId: result.playerId, code: result.room.code });
+});
+
 // Timer callbacks
 function onTimerTick(room, remaining) {
   broadcast(room, { type: 'timer', remaining });
