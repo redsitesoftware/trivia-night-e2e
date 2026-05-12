@@ -32,6 +32,14 @@ function createRoom(hostWs, hostName) {
   return { room, playerId: hostId };
 }
 
+/**
+ * HTTP-friendly variant: creates a room without requiring a WebSocket connection.
+ * The host WebSocket can be attached later via attachPlayerWs().
+ */
+function createRoomHttp(hostName) {
+  return createRoom(null, hostName);
+}
+
 function joinRoom(code, ws, playerName) {
   const room = rooms.get(code.toUpperCase());
   if (!room) return { error: 'Room not found' };
@@ -41,6 +49,32 @@ function joinRoom(code, ws, playerName) {
   const playerId = uuidv4();
   room.players.set(playerId, { id: playerId, name: playerName, score: 0, ws });
   return { room, playerId };
+}
+
+/**
+ * HTTP-friendly variant: joins a room without requiring a WebSocket connection.
+ * The player WebSocket can be attached later via attachPlayerWs().
+ */
+function joinRoomHttp(code, playerName) {
+  return joinRoom(code, null, playerName);
+}
+
+/**
+ * Attach (or update) the WebSocket for an existing player in a room.
+ */
+function attachPlayerWs(playerId, ws) {
+  for (const room of rooms.values()) {
+    const player = room.players.get(playerId);
+    if (player) {
+      player.ws = ws;
+      return room;
+    }
+  }
+  return null;
+}
+
+function getRoom(code) {
+  return rooms.get(code.toUpperCase()) || null;
 }
 
 function getRoomByPlayer(playerId) {
@@ -140,7 +174,11 @@ function submitAnswer(room, playerId, answerIndex) {
 module.exports = {
   rooms,
   createRoom,
+  createRoomHttp,
   joinRoom,
+  joinRoomHttp,
+  attachPlayerWs,
+  getRoom,
   getRoomByPlayer,
   getLeaderboard,
   broadcast,
