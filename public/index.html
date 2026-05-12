@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trivia Night 🎉</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Home ─────────────────────────────────────────────────────────── -->
+  <div id="screen-home" class="screen active">
+    <div class="card">
+      <h1>🎉 Trivia Night</h1>
+      <p class="subtitle">Multiplayer quiz fun!</p>
+      <button id="btn-host" class="btn btn-primary btn-large">🎮 Host a Game</button>
+      <button id="btn-join" class="btn btn-secondary btn-large">👥 Join a Game</button>
+    </div>
+  </div>
+
+  <!-- ── Host Lobby ────────────────────────────────────────────────────── -->
+  <div id="screen-host-lobby" class="screen">
+    <div class="card">
+      <h2>🎮 Host Lobby</h2>
+      <p class="label">Share this code with players:</p>
+      <div id="join-code" class="join-code">------</div>
+      <div class="player-section">
+        <p class="label">Players joined (<span id="player-count">0</span>/8):</p>
+        <ul id="player-list" class="player-list"></ul>
+      </div>
+      <button id="btn-start" class="btn btn-primary" disabled>▶ Start Game</button>
+      <p id="start-hint" class="hint">Waiting for at least 1 player…</p>
+    </div>
+  </div>
+
+  <!-- ── Player Join ───────────────────────────────────────────────────── -->
+  <div id="screen-join" class="screen">
+    <div class="card">
+      <h2>👥 Join a Game</h2>
+      <label for="input-code">Join Code</label>
+      <input id="input-code" class="input" type="text" maxlength="6" placeholder="ABC123" autocomplete="off" />
+      <label for="input-name">Your Name</label>
+      <input id="input-name" class="input" type="text" maxlength="20" placeholder="Display name" autocomplete="off" />
+      <p id="join-error" class="error hidden"></p>
+      <button id="btn-join-submit" class="btn btn-primary">Join Game</button>
+      <button id="btn-back-home" class="btn btn-ghost">← Back</button>
+    </div>
+  </div>
+
+  <!-- ── Player Waiting ────────────────────────────────────────────────── -->
+  <div id="screen-player-waiting" class="screen">
+    <div class="card">
+      <h2>✅ You're in!</h2>
+      <p class="subtitle" id="waiting-name"></p>
+      <p class="hint">Waiting for the host to start the game…</p>
+      <div class="spinner"></div>
+      <div class="player-section">
+        <p class="label">Players in room:</p>
+        <ul id="waiting-player-list" class="player-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Question ──────────────────────────────────────────────────────── -->
+  <div id="screen-question" class="screen">
+    <div class="question-header">
+      <span id="q-counter" class="q-counter">Question 1/12</span>
+      <span id="q-category" class="q-category">Science</span>
+      <div id="timer-bar-wrap" class="timer-bar-wrap">
+        <div id="timer-bar" class="timer-bar"></div>
+      </div>
+      <span id="timer-label" class="timer-label">30</span>
+    </div>
+    <div class="card question-card">
+      <p id="q-text" class="question-text"></p>
+      <div id="answers-grid" class="answers-grid"></div>
+      <p id="answer-feedback" class="answer-feedback hidden"></p>
+    </div>
+  </div>
+
+  <!-- ── Leaderboard ───────────────────────────────────────────────────── -->
+  <div id="screen-leaderboard" class="screen">
+    <div class="card">
+      <h2>📊 Leaderboard</h2>
+      <p id="correct-answer-reveal" class="correct-reveal"></p>
+      <ol id="leaderboard-list" class="leaderboard-list"></ol>
+      <div id="host-next-wrap" class="hidden">
+        <button id="btn-next-question" class="btn btn-primary">▶ Next Question</button>
+      </div>
+      <p id="player-next-hint" class="hint hidden">Waiting for host…</p>
+    </div>
+  </div>
+
+  <!-- ── Final Podium ──────────────────────────────────────────────────── -->
+  <div id="screen-podium" class="screen">
+    <div class="card">
+      <h2>🏆 Final Results</h2>
+      <div id="podium" class="podium"></div>
+      <ol id="final-list" class="leaderboard-list"></ol>
+      <button id="btn-play-again" class="btn btn-primary">🔄 Play Again</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
