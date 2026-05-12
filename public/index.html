@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trivia Night</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; }
+    h1 { color: #e94560; margin-bottom: 1.5rem; font-size: 2rem; }
+    .card { background: #16213e; border-radius: 12px; padding: 2rem; max-width: 480px; width: 100%; margin-bottom: 1rem; }
+    input, button { width: 100%; padding: 0.75rem 1rem; margin: 0.4rem 0; border-radius: 8px; border: none; font-size: 1rem; }
+    button { background: #e94560; color: #fff; cursor: pointer; font-weight: bold; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hidden { display: none; }
+    #timer { font-size: 2rem; color: #e94560; text-align: center; margin: 0.5rem 0; }
+    .option-btn { background: #0f3460; margin: 0.3rem 0; }
+    .option-btn.correct { background: #27ae60; }
+    .option-btn.wrong { background: #c0392b; }
+    #leaderboard li { padding: 0.25rem 0; border-bottom: 1px solid #0f3460; }
+    #status { color: #aaa; text-align: center; font-style: italic; margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <h1>🎉 Trivia Night</h1>
+
+  <div id="lobby" class="card">
+    <h2>Host a Game</h2>
+    <button onclick="hostGame()">Create Room</button>
+    <hr style="margin:1rem 0;border-color:#0f3460" />
+    <h2>Join a Game</h2>
+    <input id="joinCode" placeholder="6-char room code" maxlength="6" style="text-transform:uppercase" />
+    <input id="playerName" placeholder="Your name" maxlength="20" />
+    <button onclick="joinGame()">Join Room</button>
+  </div>
+
+  <div id="waitingRoom" class="card hidden">
+    <h2>Room: <span id="displayCode"></span></h2>
+    <p id="status">Waiting for host to start...</p>
+    <button id="startBtn" class="hidden" onclick="startGame()">Start Game</button>
+    <h3>Players</h3>
+    <ul id="playerList"></ul>
+  </div>
+
+  <div id="questionView" class="card hidden">
+    <p id="categoryLabel" style="color:#aaa;font-size:0.85rem"></p>
+    <p id="qProgress" style="margin-bottom:0.5rem"></p>
+    <p id="qText" style="font-size:1.15rem;margin-bottom:1rem"></p>
+    <div id="timer">30</div>
+    <div id="options"></div>
+  </div>
+
+  <div id="leaderboardView" class="card hidden">
+    <h2>Leaderboard</h2>
+    <ol id="leaderboard"></ol>
+    <p id="gameOverMsg" class="hidden" style="margin-top:1rem;color:#e94560;font-weight:bold">Game Over!</p>
+  </div>
+
+  <script>
+    let ws, roomCode, playerToken, hostToken, isHost = false;
+
+    function connect(code) {
+      roomCode = code.toUpperCase();
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}`);
+      ws.onopen = () => ws.send(JSON.stringify({ type: 'subscribe', code: roomCode }));
+      ws.onmessage = ({ data }) => handleEvent(JSON.parse(data));
+    }
+
+    function handleEvent(msg) {
+      if (msg.event === 'question_start') showQuestion(msg);
+      if (msg.event === 'timer_tick') updateTimer(msg.remainingSeconds);
+      if (msg.event === 'question_end') showAnswer(msg);
+      if (msg.event === 'leaderboard_update') showLeaderboard(msg.leaderboard);
+      if (msg.event === 'game_over') {
+        showLeaderboard(msg.leaderboard);
+        document.getElementById('gameOverMsg').classList.remove('hidden');
+      }
+    }
+
+    async function hostGame() {
+      const r = await fetch('/api/rooms', { method: 'POST' }).then(r => r.json());
+      roomCode = r.code; hostToken = r.hostToken; isHost = true;
+      document.getElementById('displayCode').textContent = r.code;
+      document.getElementById('startBtn').classList.remove('hidden');
+      show('waitingRoom');
+      connect(r.code);
+    }
+
+    async function joinGame() {
+      const code = document.getElementById('joinCode').value.trim().toUpperCase();
+      const name = document.getElementById('playerName').value.trim();
+      if (!code || !name) return alert('Enter code and name');
+      const r = await fetch(`/api/rooms/${code}/join`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then(r => r.json());
+      if (r.error) return alert(r.error);
+      playerToken = r.playerToken;
+      document.getElementById('displayCode').textContent = code;
+      show('waitingRoom');
+      connect(code);
+    }
+
+    async function startGame() {
+      await fetch(`/api/rooms/${roomCode}/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hostToken }) });
+    }
+
+    function showQuestion(q) {
+      document.getElementById('categoryLabel').textContent = q.category;
+      document.getElementById('qProgress').textContent = `Question ${q.questionNumber} of ${q.total}`;
+      document.getElementById('qText').textContent = q.text;
+      document.getElementById('timer').textContent = q.timeSeconds;
+      const opts = document.getElementById('options');
+      opts.innerHTML = '';
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.onclick = () => answerQuestion(i);
+        opts.appendChild(btn);
+      });
+      document.getElementById('leaderboardView').classList.add('hidden');
+      show('questionView');
+    }
+
+    function updateTimer(s) {
+      document.getElementById('timer').textContent = s;
+    }
+
+    function showAnswer({ correctAnswerIndex }) {
+      const btns = document.querySelectorAll('.option-btn');
+      btns.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === correctAnswerIndex) btn.classList.add('correct');
+      });
+    }
+
+    function showLeaderboard(lb) {
+      const list = document.getElementById('leaderboard');
+      list.innerHTML = lb.map(p => `<li>${p.name}: ${p.score}</li>`).join('');
+      document.getElementById('leaderboardView').classList.remove('hidden');
+    }
+
+    async function answerQuestion(index) {
+      if (!playerToken) return;
+      document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+      await fetch(`/api/rooms/${roomCode}/answer`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playerToken, answerIndex: index }) });
+    }
+
+    function show(id) {
+      ['lobby','waitingRoom','questionView'].forEach(s => document.getElementById(s).classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
