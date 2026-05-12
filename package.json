@@ -1,0 +1,15 @@
+{
+  "name": "trivia-night-e2e",
+  "version": "1.0.0",
+  "description": "Trivia Night App - E2E test repo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0",
+    "ws": "^8.16.0"
+  }
+}
