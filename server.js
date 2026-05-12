@@ -3,8 +3,10 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const {
-  createRoom, joinRoom, getRoomByPlayer,
-  getLeaderboard, broadcast, startGame,
+  createRoom, createRoomHttp,
+  joinRoom, joinRoomHttp,
+  attachPlayerWs, getRoom,
+  getRoomByPlayer, getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer
 } = require('./src/rooms');
 
@@ -19,6 +21,44 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Map internal room states to the API-facing state names
+function apiRoomState(state) {
+  if (state === 'lobby') return 'waiting';
+  if (state === 'finished') return 'finished';
+  return 'in-progress';
+}
+
+// POST /api/rooms — create a new room; returns join code and host token
+app.post('/api/rooms', (req, res) => {
+  const hostName = (req.body && req.body.name) ? String(req.body.name).trim() : 'Host';
+  const { room, playerId: hostToken } = createRoomHttp(hostName);
+  res.status(201).json({
+    code: room.code,
+    hostToken,
+    state: apiRoomState(room.state),
+    players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
+  });
+});
+
+// POST /api/rooms/:code/join — join a room by code; returns player token
+app.post('/api/rooms/:code/join', (req, res) => {
+  const code = String(req.params.code).toUpperCase();
+  const playerName = (req.body && req.body.name) ? String(req.body.name).trim() : 'Player';
+
+  const result = joinRoomHttp(code, playerName);
+  if (result.error) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  const { room, playerId: playerToken } = result;
+  res.status(200).json({
+    playerToken,
+    code: room.code,
+    state: apiRoomState(room.state),
+    players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
+  });
 });
 
 // Timer callbacks
@@ -54,6 +94,31 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw); } catch { return; }
 
     switch (msg.type) {
+      case 'reconnect': {
+        // Allow players created via HTTP to attach their WebSocket session
+        if (!msg.playerId) {
+          ws.send(JSON.stringify({ type: 'error', message: 'playerId required for reconnect' }));
+          return;
+        }
+        const room = attachPlayerWs(msg.playerId, ws);
+        if (!room) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Player not found' }));
+          return;
+        }
+        playerId = msg.playerId;
+        roomCode = room.code;
+        const isHost = room.hostId === playerId;
+        ws.send(JSON.stringify({
+          type: 'reconnected',
+          code: roomCode,
+          playerId,
+          isHost,
+          state: room.state,
+          players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
+        }));
+        break;
+      }
+
       case 'create_room': {
         const { room, playerId: pid } = createRoom(ws, msg.name || 'Host');
         playerId = pid;
