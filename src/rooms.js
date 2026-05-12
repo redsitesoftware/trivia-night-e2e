@@ -50,6 +50,22 @@ function getRoomByPlayer(playerId) {
   return null;
 }
 
+function attachPlayerWs(playerId, ws) {
+  for (const room of rooms.values()) {
+    if (room.players.has(playerId)) {
+      room.players.get(playerId).ws = ws;
+      return room;
+    }
+  }
+  return null;
+}
+
+function getRoomPublicState(room) {
+  if (room.state === 'lobby') return 'waiting';
+  if (room.state === 'finished') return 'finished';
+  return 'in-progress';
+}
+
 function getLeaderboard(room) {
   return [...room.players.values()]
     .sort((a, b) => b.score - a.score)
@@ -142,6 +158,8 @@ module.exports = {
   createRoom,
   joinRoom,
   getRoomByPlayer,
+  attachPlayerWs,
+  getRoomPublicState,
   getLeaderboard,
   broadcast,
   startGame,

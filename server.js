@@ -3,7 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const {
-  createRoom, joinRoom, getRoomByPlayer,
+  createRoom, joinRoom, getRoomByPlayer, attachPlayerWs, getRoomPublicState,
   getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer
 } = require('./src/rooms');
@@ -19,6 +19,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// POST /api/rooms — create a room; returns join code and host player token
+app.post('/api/rooms', (req, res) => {
+  const name = (req.body && req.body.name) ? String(req.body.name).trim() : 'Host';
+  const { room, playerId } = createRoom(null, name || 'Host');
+  res.status(201).json({ code: room.code, playerId, state: getRoomPublicState(room) });
+});
+
+// POST /api/rooms/:code/join — join a room by code; returns player token
+app.post('/api/rooms/:code/join', (req, res) => {
+  const name = req.body && req.body.name ? String(req.body.name).trim() : '';
+  if (!name) return res.status(400).json({ error: 'Display name is required' });
+
+  const result = joinRoom(req.params.code, null, name);
+  if (result.error) {
+    const status = result.error === 'Room not found' ? 404 : 400;
+    return res.status(status).json({ error: result.error });
+  }
+  res.status(200).json({ playerId: result.playerId });
 });
 
 // Timer callbacks
@@ -54,6 +74,27 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw); } catch { return; }
 
     switch (msg.type) {
+      case 'identify': {
+        const room = attachPlayerWs(msg.playerId, ws);
+        if (!room) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Player not found' }));
+          return;
+        }
+        playerId = msg.playerId;
+        roomCode = room.code;
+        const playerList = [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }));
+        ws.send(JSON.stringify({
+          type: 'identified',
+          code: room.code,
+          playerId,
+          isHost: room.hostId === playerId,
+          players: playerList
+        }));
+        // Notify others that this player has connected
+        broadcast(room, { type: 'player_joined', players: playerList });
+        break;
+      }
+
       case 'create_room': {
         const { room, playerId: pid } = createRoom(ws, msg.name || 'Host');
         playerId = pid;
