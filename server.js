@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
 });
 
 // GET /api/scores/history — top 10 all-time scores sorted by score descending
