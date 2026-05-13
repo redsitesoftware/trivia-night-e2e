@@ -60,9 +60,7 @@ function handleMessage(msg) {
 
     case 'leaderboard_update':
       state.leaderboard = msg.leaderboard;
-      if (document.getElementById('screen-leaderboard').classList.contains('active')) {
-        renderLeaderboard('leaderboard-list', msg.leaderboard);
-      }
+      renderLeaderboard('leaderboard-list', msg.leaderboard);
       break;
 
     case 'game_over':
