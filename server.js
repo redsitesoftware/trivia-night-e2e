@@ -9,6 +9,7 @@ const {
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer
 } = require('./src/rooms');
+const { getTopScores } = require('./src/scoreHistory');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +22,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// GET /api/scores — return top 10 scores from score history
+app.get('/api/scores', (req, res) => {
+  res.json({ scores: getTopScores(10) });
 });
 
 // Map internal room states to the API-facing state names

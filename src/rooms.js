@@ -107,9 +107,9 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
   if (room.currentQuestion >= room.questions.length) {
     room.state = 'finished';
     const leaderboard = getLeaderboard(room);
-    const finishedAt = new Date().toISOString();
-    for (const player of room.players.values()) {
-      recordScore({ player: player.name, score: player.score, date: finishedAt });
+    const now = new Date().toISOString();
+    for (const { name, score } of leaderboard) {
+      recordScore({ player: name, score, date: now });
     }
     broadcast(room, { type: 'game_over', leaderboard });
     return;
