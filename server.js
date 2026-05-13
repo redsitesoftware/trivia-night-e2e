@@ -198,6 +198,7 @@ wss.on('connection', (ws) => {
           return;
         }
         ws.send(JSON.stringify({ type: 'answer_result', ...result }));
+        // Broadcast score-update to all players in the room after each answer
         broadcast(room, {
           type: 'score-update',
           leaderboard: getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }))
