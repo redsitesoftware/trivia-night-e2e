@@ -10,7 +10,7 @@ const {
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer
 } = require('./src/rooms');
-const { getTopScores } = require('./src/scoreHistory');
+const { getTopScores, recordScore } = require('./src/scoreHistory');
 
 const app = express();
 const server = http.createServer(app);
@@ -40,6 +40,28 @@ const scoresHistoryLimiter = rateLimit({
 });
 app.get('/api/scores/history', scoresHistoryLimiter, (req, res) => {
   res.json(getTopScores(10));
+});
+
+// Validation middleware for POST /api/scores
+function validateScorePayload(req, res, next) {
+  const { playerId, score, roomId } = req.body || {};
+  if (!playerId || typeof playerId !== 'string') {
+    return res.status(400).json({ error: 'playerId is required and must be a string' });
+  }
+  if (score === undefined || score === null || typeof score !== 'number') {
+    return res.status(400).json({ error: 'score is required and must be a number' });
+  }
+  if (!roomId || typeof roomId !== 'string') {
+    return res.status(400).json({ error: 'roomId is required and must be a string' });
+  }
+  next();
+}
+
+// POST /api/scores — record a player's score
+app.post('/api/scores', validateScorePayload, (req, res) => {
+  const { playerId, score, roomId } = req.body;
+  recordScore({ player: playerId, score, date: new Date().toISOString() });
+  res.status(200).json({ playerId, score, roomId, recorded: true });
 });
 
 // Map internal room states to the API-facing state names
