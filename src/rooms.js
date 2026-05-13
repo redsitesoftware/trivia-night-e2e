@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { getShuffledQuestions } = require('./questions');
+const { recordScore } = require('./scoreHistory');
 
 const MAX_PLAYERS = 8;
 const QUESTION_TIME_SECS = 30;
@@ -105,10 +106,12 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
 
   if (room.currentQuestion >= room.questions.length) {
     room.state = 'finished';
-    broadcast(room, {
-      type: 'game_over',
-      leaderboard: getLeaderboard(room)
-    });
+    const leaderboard = getLeaderboard(room);
+    const now = new Date().toISOString();
+    for (const player of room.players.values()) {
+      recordScore({ player: player.name, score: player.score, date: now });
+    }
+    broadcast(room, { type: 'game_over', leaderboard });
     return;
   }
 
