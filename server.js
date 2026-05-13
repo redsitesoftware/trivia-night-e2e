@@ -182,6 +182,10 @@ wss.on('connection', (ws) => {
           type: 'leaderboard_update',
           leaderboard: getLeaderboard(room)
         });
+        broadcast(room, {
+          type: 'score-update',
+          leaderboard: getLeaderboard(room)
+        });
         break;
       }
     }
