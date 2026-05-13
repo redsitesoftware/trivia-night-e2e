@@ -61,6 +61,13 @@ function handleMessage(msg) {
       // live update — ignore for now (shown on question_end)
       break;
 
+    case 'score-update':
+      // Update leaderboard in real-time if leaderboard screen is visible
+      if (document.getElementById('screen-leaderboard').classList.contains('active')) {
+        renderLeaderboard('leaderboard-list', msg.leaderboard);
+      }
+      break;
+
     case 'game_over':
       showGameOver(msg.leaderboard);
       break;
