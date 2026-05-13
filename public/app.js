@@ -7,7 +7,8 @@ let state = {
   timerMax: 30,
   timerRemaining: 30,
   answered: false,
-  selectedAnswer: null
+  selectedAnswer: null,
+  leaderboard: []
 };
 
 /* ===== WebSocket ===== */
@@ -57,8 +58,11 @@ function handleMessage(msg) {
       showLeaderboardInterstitial(msg.leaderboard);
       break;
 
-    case 'scores_update':
-      // live update — ignore for now (shown on question_end)
+    case 'leaderboard_update':
+      state.leaderboard = msg.leaderboard;
+      if (document.getElementById('screen-leaderboard').classList.contains('active')) {
+        renderLeaderboard('leaderboard-list', msg.leaderboard);
+      }
       break;
 
     case 'game_over':
@@ -82,7 +86,7 @@ function showCreateRoom() { showScreen('screen-create'); }
 function showJoinRoom() { showScreen('screen-join'); }
 
 function resetState() {
-  state = { playerId: null, roomCode: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null };
+  state = { playerId: null, roomCode: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
 }
 
 /* ===== Room actions ===== */
