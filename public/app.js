@@ -1,8 +1,11 @@
 /* ===== State ===== */
 let ws = null;
+let retryCount = 0;
+let reconnectTimer = null;
 let state = {
   playerId: null,
   roomCode: null,
+  playerName: null,
   isHost: false,
   timerMax: 30,
   timerRemaining: 30,
@@ -16,10 +19,47 @@ function connect() {
   return new Promise((resolve) => {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = resolve;
+
+    ws.onopen = () => {
+      retryCount = 0;
+      hideReconnectBanner();
+      if (state.playerId) {
+        send({ type: 'reconnect', playerId: state.playerId });
+      }
+      resolve();
+    };
+
     ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
-    ws.onclose = () => console.log('WS closed');
+
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+    };
+
+    ws.onclose = () => {
+      if (state.playerId && state.roomCode) {
+        scheduleReconnect();
+      }
+    };
   });
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  const delay = Math.min(30000, 1000 * 2 ** retryCount);
+  retryCount++;
+  showReconnectBanner();
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect();
+  }, delay);
+}
+
+function showReconnectBanner() {
+  document.getElementById('reconnect-banner').classList.remove('hidden');
+}
+
+function hideReconnectBanner() {
+  document.getElementById('reconnect-banner').classList.add('hidden');
 }
 
 function send(obj) {
@@ -29,6 +69,15 @@ function send(obj) {
 /* ===== Message handler ===== */
 function handleMessage(msg) {
   switch (msg.type) {
+    case 'reconnected':
+      state.playerId = msg.playerId;
+      state.roomCode = msg.code;
+      state.isHost = msg.isHost;
+      if (msg.state === 'lobby') {
+        showLobby(msg.code, msg.players);
+      }
+      break;
+
     case 'room_created':
     case 'room_joined':
       state.playerId = msg.playerId;
@@ -79,18 +128,33 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
-function showHome() { showScreen('screen-home'); resetState(); }
+function showHome() {
+  if (ws) {
+    ws.onclose = null;
+    ws.close();
+    ws = null;
+  }
+  showScreen('screen-home');
+  resetState();
+}
 function showCreateRoom() { showScreen('screen-create'); }
 function showJoinRoom() { showScreen('screen-join'); }
 
 function resetState() {
-  state = { playerId: null, roomCode: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  retryCount = 0;
+  hideReconnectBanner();
+  state = { playerId: null, roomCode: null, playerName: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
 }
 
 /* ===== Room actions ===== */
 async function createRoom() {
   const name = document.getElementById('host-name').value.trim();
   if (!name) { alert('Enter a display name'); return; }
+  state.playerName = name;
   await connect();
   send({ type: 'create_room', name });
 }
@@ -100,6 +164,7 @@ async function joinRoom() {
   const name = document.getElementById('player-name').value.trim();
   if (!code || code.length !== 6) { alert('Enter a valid 6-character code'); return; }
   if (!name) { alert('Enter a display name'); return; }
+  state.playerName = name;
   await connect();
   send({ type: 'join_room', code, name });
 }

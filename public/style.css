@@ -95,6 +95,26 @@ input[type=text]:focus { border-color: #e94560; }
 .hint { font-size: .8rem; color: rgba(255,255,255,0.45); margin-top: .5rem; }
 .hidden { display: none !important; }
 
+.reconnect-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #e94560;
+  color: #fff;
+  text-align: center;
+  padding: .6rem 1rem;
+  font-weight: 600;
+  font-size: .95rem;
+  z-index: 1000;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .7; }
+}
+
 /* Question screen */
 #screen-question {
   display: none;
