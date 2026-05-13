@@ -61,6 +61,26 @@ app.post('/api/rooms/:code/join', (req, res) => {
   });
 });
 
+// POST /api/rooms/:code/answer — submit an answer via HTTP (mirrors the submit_answer WS event)
+app.post('/api/rooms/:code/answer', (req, res) => {
+  const code = String(req.params.code).toUpperCase();
+  const room = getRoom(code);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+
+  const { playerId, answer } = req.body || {};
+  if (!playerId || answer === undefined) {
+    return res.status(400).json({ error: 'playerId and answer required' });
+  }
+
+  const result = submitAnswer(room, playerId, answer);
+  if (result.error) return res.status(400).json({ error: result.error });
+
+  const leaderboard = getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }));
+  broadcast(room, { type: 'score-update', leaderboard });
+
+  res.status(200).json({ ...result, leaderboard });
+});
+
 // Timer callbacks
 function onTimerTick(room, remaining) {
   broadcast(room, { type: 'timer_tick', remaining });
@@ -177,11 +197,9 @@ wss.on('connection', (ws) => {
           return;
         }
         ws.send(JSON.stringify({ type: 'answer_result', ...result }));
-        // Broadcast updated scores after answer
-        broadcast(room, {
-          type: 'leaderboard_update',
-          leaderboard: getLeaderboard(room)
-        });
+        // Broadcast updated scores to all players in the room
+        const leaderboard = getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }));
+        broadcast(room, { type: 'score-update', leaderboard });
         break;
       }
     }
