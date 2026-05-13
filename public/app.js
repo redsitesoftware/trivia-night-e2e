@@ -1,5 +1,7 @@
 /* ===== State ===== */
 let ws = null;
+let retryCount = 0;
+let reconnectTimer = null;
 let state = {
   playerId: null,
   roomCode: null,
@@ -10,15 +12,57 @@ let state = {
   selectedAnswer: null
 };
 
+/* ===== Reconnect banner ===== */
+function showReconnectBanner() {
+  document.getElementById('reconnect-banner').classList.remove('hidden');
+}
+
+function hideReconnectBanner() {
+  document.getElementById('reconnect-banner').classList.add('hidden');
+}
+
 /* ===== WebSocket ===== */
 function connect() {
   return new Promise((resolve) => {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${proto}://${location.host}`);
-    ws.onopen = resolve;
+
+    ws.onopen = () => {
+      retryCount = 0;
+      hideReconnectBanner();
+      resolve();
+    };
+
     ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
-    ws.onclose = () => console.log('WS closed');
+
+    ws.onclose = () => scheduleReconnect();
+    ws.onerror = () => scheduleReconnect();
   });
+}
+
+function scheduleReconnect() {
+  if (!state.playerId) return; // not in a session — nothing to reconnect
+  if (reconnectTimer) return;  // already scheduled
+
+  const delay = Math.min(30000, 1000 * 2 ** retryCount);
+  retryCount++;
+  showReconnectBanner();
+
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}`);
+
+    ws.onmessage = (e) => handleMessage(JSON.parse(e.data));
+    ws.onclose = () => scheduleReconnect();
+    ws.onerror = () => scheduleReconnect();
+
+    ws.onopen = () => {
+      retryCount = 0;
+      hideReconnectBanner();
+      ws.send(JSON.stringify({ type: 'reconnect', playerId: state.playerId }));
+    };
+  }, delay);
 }
 
 function send(obj) {
@@ -30,6 +74,7 @@ function handleMessage(msg) {
   switch (msg.type) {
     case 'room_created':
     case 'room_joined':
+    case 'reconnected':
       state.playerId = msg.playerId;
       state.roomCode = msg.code;
       state.isHost = msg.isHost;
@@ -82,6 +127,12 @@ function showCreateRoom() { showScreen('screen-create'); }
 function showJoinRoom() { showScreen('screen-join'); }
 
 function resetState() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  retryCount = 0;
+  hideReconnectBanner();
   state = { playerId: null, roomCode: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null };
 }
 

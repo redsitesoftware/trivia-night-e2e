@@ -230,3 +230,20 @@ input[type=text]:focus { border-color: #e94560; }
 .podium-place:nth-child(1) .podium-block { height: 80px; background: rgba(255,215,0,0.25); border: 2px solid gold; }
 .podium-place:nth-child(2) .podium-block { height: 55px; background: rgba(192,192,192,0.2); border: 2px solid silver; }
 .podium-place:nth-child(3) .podium-block { height: 40px; background: rgba(205,127,50,0.2); border: 2px solid #cd7f32; }
+
+/* Reconnect banner */
+.reconnect-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: .65rem 1rem;
+  background: rgba(233,69,96,0.92);
+  color: #fff;
+  font-weight: 600;
+  font-size: .95rem;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  letter-spacing: .02em;
+}
