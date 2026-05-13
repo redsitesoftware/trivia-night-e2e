@@ -177,10 +177,10 @@ wss.on('connection', (ws) => {
           return;
         }
         ws.send(JSON.stringify({ type: 'answer_result', ...result }));
-        // Broadcast updated scores after answer
+        // Broadcast score-update to all players in the room after each answer
         broadcast(room, {
-          type: 'leaderboard_update',
-          leaderboard: getLeaderboard(room)
+          type: 'score-update',
+          leaderboard: getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }))
         });
         break;
       }
