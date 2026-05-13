@@ -112,6 +112,11 @@ function handleMessage(msg) {
       renderLeaderboard('leaderboard-list', msg.leaderboard);
       break;
 
+    case 'score-update':
+      state.leaderboard = msg.leaderboard;
+      renderLeaderboard('leaderboard-list', msg.leaderboard);
+      break;
+
     case 'game_over':
       showGameOver(msg.leaderboard);
       break;
