@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const {
   createRoom, createRoomHttp,
   joinRoom, joinRoomHttp,
@@ -24,8 +25,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// GET /api/scores/history — top 10 all-time scores sorted by score descending
-app.get('/api/scores/history', (req, res) => {
+// GET /api/scores/history — top 10 all-time scores sorted by score descending (60 req/min per IP)
+const scoresHistoryLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ error: 'Too many requests' })
+});
+app.get('/api/scores/history', scoresHistoryLimiter, (req, res) => {
   res.json(getTopScores(10));
 });
 
