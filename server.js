@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const {
   createRoom, createRoomHttp,
   joinRoom, joinRoomHttp,
@@ -9,6 +10,7 @@ const {
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer
 } = require('./src/rooms');
+const { recordScore, getTopScores } = require('./src/scoreHistory');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +23,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+const scoresHistoryLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).json({ error: 'Too many requests' })
+});
+
+// GET /api/scores/history — return top 10 all-time scores (rate limited to 60 req/min per IP)
+app.get('/api/scores/history', scoresHistoryLimiter, (req, res) => {
+  res.json(getTopScores(10));
 });
 
 // Map internal room states to the API-facing state names
@@ -98,11 +113,17 @@ function onTimerEnd(room, onTick, onEnd) {
   broadcast(room, { type: 'leaderboard_update', leaderboard });
   room.state = 'leaderboard';
 
-  // Advance to next question after 5 seconds
+  // Advance to next question after 5 seconds; record scores when game ends
   setTimeout(() => {
     if (room.state === 'leaderboard') {
       room.state = 'question';
       nextQuestion(room, onTick, onEnd);
+      if (room.state === 'finished') {
+        const date = new Date().toISOString();
+        for (const player of room.players.values()) {
+          recordScore({ player: player.name, score: player.score, date });
+        }
+      }
     }
   }, 5000);
 }
