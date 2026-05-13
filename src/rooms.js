@@ -174,6 +174,21 @@ function submitAnswer(room, playerId, answerIndex) {
   return { correct: isCorrect, points, correctAnswer: q.answer };
 }
 
+/**
+ * Delete a room by code, clearing any active timer and removing all associated data.
+ * Returns the deleted room object, or null if the room was not found.
+ */
+function deleteRoom(code) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return null;
+  if (room.timer) {
+    clearInterval(room.timer);
+    room.timer = null;
+  }
+  rooms.delete(room.code);
+  return room;
+}
+
 module.exports = {
   rooms,
   createRoom,
@@ -188,5 +203,6 @@ module.exports = {
   startGame,
   nextQuestion,
   submitAnswer,
+  deleteRoom,
   QUESTION_TIME_SECS
 };

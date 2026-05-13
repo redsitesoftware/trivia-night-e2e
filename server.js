@@ -8,7 +8,7 @@ const {
   joinRoom, joinRoomHttp,
   attachPlayerWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
-  nextQuestion, submitAnswer
+  nextQuestion, submitAnswer, deleteRoom
 } = require('./src/rooms');
 const { getTopScores, recordScore } = require('./src/scoreHistory');
 
@@ -99,6 +99,19 @@ app.post('/api/rooms/:code/join', (req, res) => {
     code: room.code,
     state: apiRoomState(room.state),
     players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
+  });
+});
+
+// DELETE /api/rooms/:id — delete a room and all its associated data
+app.delete('/api/rooms/:id', (req, res) => {
+  const code = String(req.params.id).toUpperCase();
+  const deleted = deleteRoom(code);
+  if (!deleted) return res.status(404).json({ error: 'Room not found' });
+
+  res.status(200).json({
+    code: deleted.code,
+    state: apiRoomState(deleted.state),
+    players: [...deleted.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
   });
 });
 
