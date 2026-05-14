@@ -141,6 +141,40 @@ function showHome() {
   }
   showScreen('screen-home');
   resetState();
+  fetchHistoryLeaderboard();
+}
+
+async function fetchHistoryLeaderboard() {
+  const container = document.getElementById('history-leaderboard-list');
+  const loading = document.getElementById('history-loading');
+  try {
+    const res = await fetch('/api/scores/history');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const scores = await res.json();
+    renderHistoryLeaderboard(scores);
+  } catch (err) {
+    console.error('Failed to fetch history leaderboard:', err);
+    if (loading) loading.textContent = 'Could not load scores.';
+  }
+}
+
+function renderHistoryLeaderboard(scores) {
+  const medals = ['🥇', '🥈', '🥉'];
+  const container = document.getElementById('history-leaderboard-list');
+  if (!scores || scores.length === 0) {
+    container.innerHTML = '<p class="hint">No scores recorded yet. Be the first!</p>';
+    return;
+  }
+  container.innerHTML = scores.map((entry, i) => {
+    const displayName = entry.nickname || entry.playerName || entry.player || 'Unknown';
+    return `
+      <div class="lb-item">
+        <span class="lb-rank">${medals[i] || (i + 1)}</span>
+        <span class="lb-name">${displayName}</span>
+        <span class="lb-score">${entry.score}</span>
+      </div>
+    `;
+  }).join('');
 }
 function showCreateRoom() { showScreen('screen-create'); }
 function showJoinRoom() { showScreen('screen-join'); }
@@ -316,3 +350,6 @@ function showGameOver(leaderboard) {
   renderLeaderboard('full-leaderboard', leaderboard);
   showScreen('screen-gameover');
 }
+
+/* ===== Init ===== */
+fetchHistoryLeaderboard();
