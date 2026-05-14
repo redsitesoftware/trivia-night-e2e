@@ -2,20 +2,21 @@ const history = [];
 
 /**
  * Record a player's final score at the end of a game.
- * @param {{ player: string, score: number, date?: string }} entry
+ * @param {{ playerName: string, roomId: string, score: number, timestamp?: string }} entry
  */
-function recordScore({ player, score, date }) {
+function recordScore({ playerName, roomId, score, timestamp }) {
   history.push({
-    player,
+    playerName,
+    roomId,
     score,
-    date: date || new Date().toISOString()
+    timestamp: timestamp || new Date().toISOString()
   });
 }
 
 /**
  * Return up to n top scores sorted by score descending.
  * @param {number} n
- * @returns {Array<{ player: string, score: number, date: string }>}
+ * @returns {Array<{ playerName: string, roomId: string, score: number, timestamp: string }>}
  */
 function getTopScores(n) {
   return [...history]

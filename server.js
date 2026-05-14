@@ -60,8 +60,13 @@ function validateScorePayload(req, res, next) {
 // POST /api/scores — record a player's score
 app.post('/api/scores', validateScorePayload, (req, res) => {
   const { playerId, score, roomId } = req.body;
-  recordScore({ player: playerId, score, date: new Date().toISOString() });
+  recordScore({ playerName: playerId, roomId, score, timestamp: new Date().toISOString() });
   res.status(200).json({ playerId, score, roomId, recorded: true });
+});
+
+// GET /api/leaderboard — top 10 scores across all rooms sorted by score descending
+app.get('/api/leaderboard', (req, res) => {
+  res.json(getTopScores(10));
 });
 
 // Map internal room states to the API-facing state names
@@ -273,8 +278,10 @@ wss.on('connection', (ws) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Trivia Night server running on port ${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Trivia Night server running on port ${PORT}`);
+  });
+}
 
 module.exports = { app, server };
