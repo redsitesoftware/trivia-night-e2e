@@ -90,11 +90,11 @@ function handleMessage(msg) {
       updatePlayerList(msg.players);
       break;
 
-    case 'question':
+    case 'question_start':
       showQuestion(msg);
       break;
 
-    case 'timer':
+    case 'timer_tick':
       updateTimer(msg.remaining);
       break;
 
