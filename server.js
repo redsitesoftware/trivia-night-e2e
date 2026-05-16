@@ -25,15 +25,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
 });
 
-// GET /api/scores/history — top 10 all-time scores sorted by score descending
-app.get('/api/scores/history', (req, res) => {
-  res.json(getTopScores(10));
-});
-
 // GET /api/scores/history — top 10 all-time scores sorted by score descending (60 req/min per IP)
 const scoresHistoryLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 60,
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000),
+  max: Number(process.env.RATE_LIMIT_MAX ?? 60),
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => res.status(429).json({ error: 'Too many requests' })
