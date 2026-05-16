@@ -41,14 +41,14 @@ function createRoomHttp(hostName) {
   return createRoom(null, hostName);
 }
 
-function joinRoom(code, ws, playerName) {
+function joinRoom(code, ws, playerName, nickname) {
   const room = rooms.get(code.toUpperCase());
   if (!room) return { error: 'Room not found' };
   if (room.state !== 'lobby') return { error: 'Game already in progress' };
   if (room.players.size >= MAX_PLAYERS) return { error: 'Room is full' };
 
   const playerId = uuidv4();
-  room.players.set(playerId, { id: playerId, name: playerName, score: 0, ws });
+  room.players.set(playerId, { id: playerId, name: playerName, nickname, score: 0, ws });
   return { room, playerId };
 }
 
@@ -56,8 +56,8 @@ function joinRoom(code, ws, playerName) {
  * HTTP-friendly variant: joins a room without requiring a WebSocket connection.
  * The player WebSocket can be attached later via attachPlayerWs().
  */
-function joinRoomHttp(code, playerName) {
-  return joinRoom(code, null, playerName);
+function joinRoomHttp(code, playerName, nickname) {
+  return joinRoom(code, null, playerName, nickname);
 }
 
 /**
@@ -88,7 +88,7 @@ function getRoomByPlayer(playerId) {
 function getLeaderboard(room) {
   return [...room.players.values()]
     .sort((a, b) => b.score - a.score)
-    .map((p, i) => ({ rank: i + 1, name: p.name, score: p.score, id: p.id }));
+    .map((p, i) => ({ rank: i + 1, name: p.name, nickname: p.nickname, score: p.score, id: p.id }));
 }
 
 function broadcast(room, message) {
@@ -109,7 +109,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     const leaderboard = getLeaderboard(room);
     const finishedAt = new Date().toISOString();
     for (const entry of leaderboard) {
-      recordScore({ player: entry.name, score: entry.score, date: finishedAt });
+      recordScore({ playerName: entry.name, nickname: entry.nickname, roomId: room.code, score: entry.score, timestamp: finishedAt });
     }
     broadcast(room, { type: 'game_over', leaderboard });
     return;

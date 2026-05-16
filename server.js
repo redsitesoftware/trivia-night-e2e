@@ -25,11 +25,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
 });
 
-// GET /api/scores/history — top 10 all-time scores sorted by score descending
-app.get('/api/scores/history', (req, res) => {
-  res.json(getTopScores(10));
-});
-
 // GET /api/scores/history — top 10 all-time scores sorted by score descending (60 req/min per IP)
 const scoresHistoryLimiter = rateLimit({
   windowMs: 60 * 1000,
