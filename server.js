@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const {
   createRoom, createRoomHttp,
   joinRoom, joinRoomHttp,
+  joinSpectator, removeSpectator,
   attachPlayerWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer, deleteRoom
@@ -164,6 +165,7 @@ function onTimerEnd(room, onTick, onEnd) {
 // WebSocket message handlers
 wss.on('connection', (ws) => {
   let playerId = null;
+  let spectatorId = null;
   let roomCode = null;
 
   ws.on('message', (raw) => {
@@ -231,6 +233,18 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case 'join_spectator': {
+        const result = joinSpectator(msg.code, ws, msg.name || 'Spectator');
+        if (result.error) {
+          ws.send(JSON.stringify({ type: 'error', message: result.error }));
+          return;
+        }
+        spectatorId = result.spectatorId;
+        roomCode = result.room.code;
+        ws.send(JSON.stringify({ type: 'spectator_joined', spectatorId, code: roomCode }));
+        break;
+      }
+
       case 'start_game': {
         const room = getRoomByPlayer(playerId);
         if (!room || room.hostId !== playerId) {
@@ -269,6 +283,9 @@ wss.on('connection', (ws) => {
         const player = room.players.get(playerId);
         if (player) player.ws = null;
       }
+    }
+    if (spectatorId) {
+      removeSpectator(spectatorId);
     }
   });
 });
