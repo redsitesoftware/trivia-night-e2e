@@ -23,6 +23,8 @@ function createRoom(hostWs, hostName) {
     hostId,
     state: 'lobby',
     players: new Map([[hostId, { id: hostId, name: hostName, score: 0, ws: hostWs }]]),
+    spectators: new Map(),
+    spectatorsAllowed: true,
     questions: [],
     currentQuestion: -1,
     timer: null,
@@ -91,11 +93,33 @@ function getLeaderboard(room) {
     .map((p, i) => ({ rank: i + 1, name: p.name, nickname: p.nickname, score: p.score, id: p.id }));
 }
 
+function joinSpectator(code, ws, displayName) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return { error: 'Room not found' };
+  if (!room.spectatorsAllowed) return { error: 'Spectator mode is not enabled for this game' };
+
+  const spectatorId = uuidv4();
+  room.spectators.set(spectatorId, { id: spectatorId, displayName, ws });
+  return { room, spectatorId };
+}
+
+function getRoomBySpectator(spectatorId) {
+  for (const room of rooms.values()) {
+    if (room.spectators.has(spectatorId)) return room;
+  }
+  return null;
+}
+
 function broadcast(room, message) {
   const data = JSON.stringify(message);
   for (const player of room.players.values()) {
     if (player.ws && player.ws.readyState === 1) {
       player.ws.send(data);
+    }
+  }
+  for (const spectator of room.spectators.values()) {
+    if (spectator.ws && spectator.ws.readyState === 1) {
+      spectator.ws.send(data);
     }
   }
 }
@@ -195,9 +219,11 @@ module.exports = {
   createRoomHttp,
   joinRoom,
   joinRoomHttp,
+  joinSpectator,
   attachPlayerWs,
   getRoom,
   getRoomByPlayer,
+  getRoomBySpectator,
   getLeaderboard,
   broadcast,
   startGame,
