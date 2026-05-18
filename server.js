@@ -12,10 +12,8 @@ const {
   joinAsSpectator, removeSpectator, getSpectatorCount,
   disconnectAllSpectators, broadcastToHost
 } = require('./src/rooms');
-const { getTopScores, recordScore } = require('./src/scoreHistory');
+const { getTopScores, recordScore, getLoadedCount } = require('./src/scoreHistory');
 const { version } = require('./package.json');
-
-const pkg = require('./package.json');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,7 +25,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: pkg.version });
+  res.json({ status: 'ok', version });
 });
 
 // GET /api/stats — server-wide stats: total rooms, active players, and app version
@@ -49,7 +47,20 @@ const scoresHistoryLimiter = rateLimit({
   handler: (req, res) => res.status(429).json({ error: 'Too many requests' })
 });
 app.get('/api/scores/history', scoresHistoryLimiter, (req, res) => {
-  res.json(getTopScores(10));
+  const DEFAULT_LIMIT = 10;
+  const MAX_LIMIT = 50;
+
+  let limit = DEFAULT_LIMIT;
+  if (req.query.limit !== undefined) {
+    const parsed = Number(req.query.limit);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_LIMIT) {
+      return res.status(400).json({ error: `limit must be an integer between 1 and ${MAX_LIMIT}` });
+    }
+    limit = parsed;
+  }
+
+  const player = req.query.player ? String(req.query.player) : null;
+  res.json(getTopScores({ limit, player }));
 });
 
 // Validation middleware for POST /api/scores
@@ -340,6 +351,7 @@ wss.on('connection', (ws) => {
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Trivia Night server running on port ${PORT}`);
+    console.log(`Loaded ${getLoadedCount()} historical scores from disk`);
   });
 }
 
