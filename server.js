@@ -49,6 +49,9 @@ function validateScorePayload(req, res, next) {
   if (!roomId || typeof roomId !== 'string') {
     return res.status(400).json({ error: 'roomId is required and must be a string' });
   }
+  if (req.body.nickname !== undefined && typeof req.body.nickname !== 'string') {
+    return res.status(400).json({ error: 'nickname must be a string' });
+  }
   next();
 }
 

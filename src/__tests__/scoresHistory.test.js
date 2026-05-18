@@ -61,3 +61,38 @@ describe('GET /api/scores/history', () => {
     }
   });
 });
+
+describe('POST /api/scores — nickname validation', () => {
+  it('returns 200 when nickname is absent', async () => {
+    const app = buildApp();
+    const res = await request(app).post('/api/scores').send({
+      playerId: 'player1',
+      score: 42,
+      roomId: 'ROOM1'
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 200 when nickname is a string', async () => {
+    const app = buildApp();
+    const res = await request(app).post('/api/scores').send({
+      playerId: 'player1',
+      score: 42,
+      roomId: 'ROOM1',
+      nickname: 'Ace'
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 400 when nickname is a non-string type', async () => {
+    const app = buildApp();
+    const res = await request(app).post('/api/scores').send({
+      playerId: 'player1',
+      score: 42,
+      roomId: 'ROOM1',
+      nickname: 123
+    });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'nickname must be a string' });
+  });
+});
