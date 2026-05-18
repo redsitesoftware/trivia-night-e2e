@@ -11,6 +11,7 @@ const {
   nextQuestion, submitAnswer, deleteRoom
 } = require('./src/rooms');
 const { getTopScores, recordScore } = require('./src/scoreHistory');
+const { version } = require('./package.json');
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +24,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+});
+
+// GET /api/stats — server-wide stats: total rooms, active players, and app version
+app.get('/api/stats', (req, res) => {
+  const { rooms } = require('./src/rooms');
+  let activePlayers = 0;
+  for (const room of rooms.values()) {
+    activePlayers += room.players.size;
+  }
+  res.json({ totalGames: rooms.size, activePlayers, version });
 });
 
 // GET /api/scores/history — top 10 all-time scores sorted by score descending (60 req/min per IP)
