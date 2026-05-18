@@ -152,7 +152,7 @@ function startGame(room, onTimerTick, onTimerEnd) {
   return true;
 }
 
-function submitAnswer(room, playerId, answerIndex) {
+function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   if (room.state !== 'question') return { error: 'No active question' };
   if (room.answeredThisRound && room.answeredThisRound.has(playerId)) {
     return { error: 'Already answered' };
@@ -163,6 +163,13 @@ function submitAnswer(room, playerId, answerIndex) {
   if (!player) return { error: 'Player not found' };
 
   room.answeredThisRound.add(playerId);
+
+  // Early-advance: all players answered before timer expired
+  if (onTimerEnd && room.timer !== null && room.answeredThisRound.size >= room.players.size) {
+    clearInterval(room.timer);
+    room.timer = null;
+    onTimerEnd(room, onTimerTick, onTimerEnd);
+  }
 
   const isCorrect = answerIndex === q.answer;
   let points = 0;
