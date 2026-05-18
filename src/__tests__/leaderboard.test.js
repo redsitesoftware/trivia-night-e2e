@@ -1,8 +1,21 @@
 const request = require('supertest');
+const fs = require('fs');
+const path = require('path');
 
-// Each test gets a fresh module state
+const TEST_SCORES_DIR = path.join(process.cwd(), '.test-data');
+let tempScoresFile;
+
 beforeEach(() => {
+  fs.mkdirSync(TEST_SCORES_DIR, { recursive: true });
+  tempScoresFile = path.join(TEST_SCORES_DIR, `scores-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  process.env.SCORES_FILE = tempScoresFile;
   jest.resetModules();
+});
+
+afterEach(() => {
+  try { fs.rmSync(tempScoresFile, { force: true }); } catch {}
+  try { fs.rmSync(TEST_SCORES_DIR, { recursive: true, force: true }); } catch {}
+  delete process.env.SCORES_FILE;
 });
 
 function buildApp() {
@@ -41,7 +54,6 @@ describe('GET /api/leaderboard', () => {
   it('returns up to 10 entries sorted by score descending', async () => {
     const app = buildApp();
 
-    // Record 12 scores
     for (let i = 1; i <= 12; i++) {
       await request(app).post('/api/scores').send({
         playerId: `Player${i}`,
@@ -53,10 +65,7 @@ describe('GET /api/leaderboard', () => {
     const res = await request(app).get('/api/leaderboard');
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(10);
-
-    // First entry should have the highest score (120)
     expect(res.body[0].score).toBe(120);
-    // Scores should be in descending order
     for (let i = 0; i < res.body.length - 1; i++) {
       expect(res.body[i].score).toBeGreaterThanOrEqual(res.body[i + 1].score);
     }

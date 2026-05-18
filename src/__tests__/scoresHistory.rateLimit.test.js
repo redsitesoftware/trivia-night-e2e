@@ -4,10 +4,23 @@ process.env.RATE_LIMIT_WINDOW_MS = '2000';
 process.env.RATE_LIMIT_MAX = '60';
 
 const request = require('supertest');
+const fs = require('fs');
+const path = require('path');
 
-// Reload server with the env vars set above.
+const TEST_SCORES_DIR = path.join(process.cwd(), '.test-data');
+let tempScoresFile;
+
 beforeEach(() => {
+  fs.mkdirSync(TEST_SCORES_DIR, { recursive: true });
+  tempScoresFile = path.join(TEST_SCORES_DIR, `scores-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  process.env.SCORES_FILE = tempScoresFile;
   jest.resetModules();
+});
+
+afterEach(() => {
+  try { fs.rmSync(tempScoresFile, { force: true }); } catch {}
+  try { fs.rmSync(TEST_SCORES_DIR, { recursive: true, force: true }); } catch {}
+  delete process.env.SCORES_FILE;
 });
 
 function buildApp() {
@@ -33,8 +46,6 @@ describe('GET /api/scores/history rate limiting', () => {
 
 describe('GET /api/health is NOT rate-limited by scoresHistoryLimiter', () => {
   it('returns 200 for 70+ requests to /api/health', async () => {
-    // Fresh app instance so the request counter from the scores/history tests
-    // does not bleed in.
     const app = buildApp();
     const agent = request(app);
 
