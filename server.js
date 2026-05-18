@@ -54,9 +54,10 @@ function validateScorePayload(req, res, next) {
 
 // POST /api/scores — record a player's score
 app.post('/api/scores', validateScorePayload, (req, res) => {
-  const { playerId, score, roomId } = req.body;
-  recordScore({ playerName: playerId, roomId, score, timestamp: new Date().toISOString() });
-  res.status(200).json({ playerId, score, roomId, recorded: true });
+  const { playerId, score, roomId, nickname } = req.body;
+  const resolvedNickname = nickname || playerId;
+  recordScore({ playerName: playerId, roomId, score, timestamp: new Date().toISOString(), nickname: resolvedNickname });
+  res.status(200).json({ playerId, score, roomId, nickname: resolvedNickname, recorded: true });
 });
 
 // GET /api/leaderboard — top 10 scores across all rooms sorted by score descending
