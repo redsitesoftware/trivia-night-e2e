@@ -163,6 +163,15 @@ app.post('/api/rooms/:code/answer', (req, res) => {
     leaderboard: getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }))
   });
 
+  // Early advance: all players answered — end the question immediately
+  if (room.state === 'question' && room.answeredThisRound.size >= room.players.size) {
+    if (room.timer) {
+      clearInterval(room.timer);
+      room.timer = null;
+    }
+    onTimerEnd(room, onTimerTick, onTimerEnd);
+  }
+
   res.json({ correct: result.correct, points: result.points, correctAnswer: result.correctAnswer });
 });
 
@@ -308,6 +317,14 @@ wss.on('connection', (ws) => {
           type: 'score-update',
           leaderboard: getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }))
         });
+        // Early advance: all players answered — end the question immediately
+        if (room.state === 'question' && room.answeredThisRound.size >= room.players.size) {
+          if (room.timer) {
+            clearInterval(room.timer);
+            room.timer = null;
+          }
+          onTimerEnd(room, onTimerTick, onTimerEnd);
+        }
         break;
       }
 
