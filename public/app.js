@@ -2,6 +2,7 @@
 let ws = null;
 let retryCount = 0;
 let reconnectTimer = null;
+let spectatorId = null;
 let state = {
   playerId: null,
   roomCode: null,
@@ -90,12 +91,25 @@ function handleMessage(msg) {
       updatePlayerList(msg.players);
       break;
 
+    case 'spectator_joined':
+      spectatorId = msg.spectatorId;
+      showScreen('screen-spectator');
+      break;
+
     case 'question_start':
-      showQuestion(msg);
+      if (spectatorId) {
+        showSpectatorQuestion(msg);
+      } else {
+        showQuestion(msg);
+      }
       break;
 
     case 'timer_tick':
-      updateTimer(msg.remaining);
+      if (spectatorId) {
+        updateSpectatorTimer(msg.remaining);
+      } else {
+        updateTimer(msg.remaining);
+      }
       break;
 
     case 'answer_result':
@@ -103,8 +117,12 @@ function handleMessage(msg) {
       break;
 
     case 'question_end':
-      revealAnswers(msg.correctAnswer);
-      showLeaderboardInterstitial(msg.leaderboard);
+      if (!spectatorId) {
+        revealAnswers(msg.correctAnswer);
+        showLeaderboardInterstitial(msg.leaderboard);
+      } else {
+        revealSpectatorAnswers(msg.correctAnswer);
+      }
       break;
 
     case 'leaderboard_update':
@@ -114,15 +132,27 @@ function handleMessage(msg) {
 
     case 'score-update':
       state.leaderboard = msg.leaderboard;
-      renderLeaderboard('leaderboard-list', msg.leaderboard);
+      if (spectatorId) {
+        renderLeaderboard('spectator-leaderboard-list', msg.leaderboard);
+      } else {
+        renderLeaderboard('leaderboard-list', msg.leaderboard);
+      }
       break;
 
     case 'game_over':
-      showGameOver(msg.leaderboard);
+      if (spectatorId) {
+        showSpectatorGameOver(msg.leaderboard);
+      } else {
+        showGameOver(msg.leaderboard);
+      }
       break;
 
     case 'error':
-      alert(msg.message);
+      if (spectatorId !== null || isScreenActive('screen-spectator-join')) {
+        showSpectatorError(msg.message);
+      } else {
+        alert(msg.message);
+      }
       break;
   }
 }
@@ -144,6 +174,12 @@ function showHome() {
 }
 function showCreateRoom() { showScreen('screen-create'); }
 function showJoinRoom() { showScreen('screen-join'); }
+function showSpectatorJoin() { showScreen('screen-spectator-join'); }
+
+function isScreenActive(id) {
+  const el = document.getElementById(id);
+  return el ? el.classList.contains('active') : false;
+}
 
 function resetState() {
   if (reconnectTimer) {
@@ -151,6 +187,7 @@ function resetState() {
     reconnectTimer = null;
   }
   retryCount = 0;
+  spectatorId = null;
   hideReconnectBanner();
   state = { playerId: null, roomCode: null, playerName: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
 }
@@ -176,6 +213,32 @@ async function joinRoom() {
 
 function startGame() {
   send({ type: 'start_game' });
+}
+
+/* ===== Spectator actions ===== */
+async function joinAsSpectator() {
+  const code = document.getElementById('spectator-join-code').value.trim().toUpperCase();
+  const displayName = document.getElementById('spectator-display-name').value.trim();
+  if (!code) {
+    showSpectatorError('Please enter a game code');
+    return;
+  }
+  hideSpectatorError();
+  await connect();
+  send({ type: 'join_spectator', code, displayName });
+}
+
+function showSpectatorError(message) {
+  const el = document.getElementById('spectator-error');
+  if (el) {
+    el.textContent = message;
+    el.classList.remove('hidden');
+  }
+}
+
+function hideSpectatorError() {
+  const el = document.getElementById('spectator-error');
+  if (el) el.classList.add('hidden');
 }
 
 /* ===== Lobby ===== */
@@ -315,4 +378,49 @@ function showGameOver(leaderboard) {
 
   renderLeaderboard('full-leaderboard', leaderboard);
   showScreen('screen-gameover');
+}
+
+/* ===== Spectator view helpers ===== */
+function showSpectatorQuestion(msg) {
+  state.timerMax = msg.timeLimit;
+  document.getElementById('spectator-q-category').textContent = msg.category;
+  document.getElementById('spectator-q-progress').innerHTML =
+    `Question ${msg.index + 1} of ${msg.total} <span class="spectator-badge-inline">👁 Spectator</span>`;
+  document.getElementById('spectator-q-text').textContent = msg.question;
+
+  const grid = document.getElementById('spectator-options-grid');
+  const labels = ['A', 'B', 'C', 'D'];
+  grid.innerHTML = msg.options.map((opt, i) => `
+    <button class="option-btn" disabled data-index="${i}">
+      <strong>${labels[i]}.</strong> ${opt}
+    </button>
+  `).join('');
+
+  updateSpectatorTimer(msg.timeLimit);
+  document.getElementById('spectator-timer-bar').style.width = '100%';
+  document.getElementById('spectator-timer-bar').style.backgroundColor = '#e94560';
+  document.getElementById('spectator-gameover-panel').classList.add('hidden');
+  showScreen('screen-spectator');
+}
+
+function updateSpectatorTimer(remaining) {
+  const timerMax = state.timerMax || 30;
+  document.getElementById('spectator-timer-text').textContent = remaining;
+  const pct = (remaining / timerMax) * 100;
+  document.getElementById('spectator-timer-bar').style.width = pct + '%';
+  const color = pct > 50 ? '#69f0ae' : pct > 25 ? '#ffd740' : '#e94560';
+  document.getElementById('spectator-timer-bar').style.backgroundColor = color;
+}
+
+function revealSpectatorAnswers(correctIndex) {
+  document.querySelectorAll('#spectator-options-grid .option-btn').forEach(btn => {
+    if (parseInt(btn.dataset.index) === correctIndex) btn.classList.add('correct');
+  });
+}
+
+function showSpectatorGameOver(leaderboard) {
+  renderLeaderboard('spectator-final-leaderboard', leaderboard);
+  document.getElementById('spectator-gameover-panel').classList.remove('hidden');
+  document.getElementById('spectator-q-text').textContent = '🏆 Game Over!';
+  document.getElementById('spectator-options-grid').innerHTML = '';
 }

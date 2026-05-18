@@ -15,6 +15,7 @@
     <p class="subtitle">Multiplayer Quiz Game</p>
     <button class="btn btn-primary" onclick="showCreateRoom()">Create Room</button>
     <button class="btn btn-secondary" onclick="showJoinRoom()">Join Room</button>
+    <button class="btn btn-ghost" onclick="showSpectatorJoin()">👁 Watch as Spectator</button>
   </div>
 </div>
 
@@ -91,6 +92,47 @@
     <div id="podium" class="podium"></div>
     <div id="full-leaderboard" class="leaderboard-list"></div>
     <button class="btn btn-primary" onclick="showHome()">Play Again</button>
+  </div>
+</div>
+
+<!-- SCREEN: Spectator Join -->
+<div id="screen-spectator-join" class="screen">
+  <div class="card">
+    <h2>👁 Watch as Spectator</h2>
+    <input id="spectator-join-code" type="text" placeholder="6-character game code" maxlength="6" style="text-transform:uppercase">
+    <input id="spectator-display-name" type="text" placeholder="Display name (optional)" maxlength="20">
+    <div id="spectator-error" class="error-msg hidden"></div>
+    <button class="btn btn-primary" onclick="joinAsSpectator()">Watch Game</button>
+    <button class="btn btn-ghost" onclick="showHome()">← Back</button>
+  </div>
+</div>
+
+<!-- SCREEN: Spectator View -->
+<div id="screen-spectator" class="screen">
+  <div class="question-header">
+    <div id="spectator-q-category" class="category-badge"></div>
+    <div id="spectator-q-progress" class="progress-text">
+      <span class="spectator-badge-inline">👁 Spectator</span>
+    </div>
+    <div id="spectator-timer-bar-wrap">
+      <div id="spectator-timer-bar"></div>
+      <span id="spectator-timer-text">–</span>
+    </div>
+  </div>
+  <div class="card question-card">
+    <p id="spectator-q-text" class="question-text">⏳ Waiting for the next question…</p>
+    <div id="spectator-options-grid" class="options-grid"></div>
+  </div>
+  <div class="card">
+    <h3>📊 Live Scores</h3>
+    <div id="spectator-leaderboard-list" class="leaderboard-list"></div>
+  </div>
+  <div id="spectator-gameover-panel" class="hidden">
+    <div class="card">
+      <h2>🏆 Game Over!</h2>
+      <div id="spectator-final-leaderboard" class="leaderboard-list"></div>
+      <button class="btn btn-primary" onclick="showHome()">Back to Home</button>
+    </div>
   </div>
 </div>
 
