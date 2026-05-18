@@ -155,7 +155,7 @@ app.post('/api/rooms/:code/answer', (req, res) => {
   if (!playerToken) return res.status(400).json({ error: 'playerToken required' });
   if (answer === undefined || answer === null) return res.status(400).json({ error: 'answer required' });
 
-  const result = submitAnswer(room, playerToken, answer);
+  const result = submitAnswer(room, playerToken, answer, onTimerTick, onTimerEnd);
   if (result.error) return res.status(400).json({ error: result.error });
 
   broadcast(room, {
@@ -297,7 +297,7 @@ wss.on('connection', (ws) => {
       case 'submit_answer': {
         const room = getRoomByPlayer(playerId);
         if (!room) return;
-        const result = submitAnswer(room, playerId, msg.answer);
+        const result = submitAnswer(room, playerId, msg.answer, onTimerTick, onTimerEnd);
         if (result.error) {
           ws.send(JSON.stringify({ type: 'error', message: result.error }));
           return;
