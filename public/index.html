@@ -15,6 +15,7 @@
     <p class="subtitle">Multiplayer Quiz Game</p>
     <button class="btn btn-primary" onclick="showCreateRoom()">Create Room</button>
     <button class="btn btn-secondary" onclick="showJoinRoom()">Join Room</button>
+    <button class="btn btn-ghost" onclick="showHallOfFame()">🏆 Hall of Fame</button>
   </div>
 </div>
 
@@ -90,7 +91,19 @@
     <h2>🏆 Final Results</h2>
     <div id="podium" class="podium"></div>
     <div id="full-leaderboard" class="leaderboard-list"></div>
+    <button class="btn btn-secondary" onclick="showHallOfFame()">🏆 Hall of Fame</button>
     <button class="btn btn-primary" onclick="showHome()">Play Again</button>
+  </div>
+</div>
+
+<!-- SCREEN: Hall of Fame -->
+<div id="screen-halloffame" class="screen">
+  <div class="card">
+    <h2>🏆 Hall of Fame</h2>
+    <div id="hof-loading" class="hint">Loading…</div>
+    <div id="hof-error" class="hof-error hidden"></div>
+    <div id="hof-list" class="leaderboard-list hidden"></div>
+    <button class="btn btn-ghost" onclick="showHallOfFameBack()">← Back</button>
   </div>
 </div>
 

@@ -294,6 +294,8 @@ function renderLeaderboard(containerId, leaderboard) {
 }
 
 /* ===== Game Over ===== */
+let _prevScreen = 'screen-home';
+
 function showGameOver(leaderboard) {
   const podiumEl = document.getElementById('podium');
   const podiumEmojis = ['🥇', '🥈', '🥉'];
@@ -314,5 +316,52 @@ function showGameOver(leaderboard) {
   }).join('');
 
   renderLeaderboard('full-leaderboard', leaderboard);
+  _prevScreen = 'screen-gameover';
   showScreen('screen-gameover');
+}
+
+/* ===== Hall of Fame ===== */
+async function showHallOfFame() {
+  showScreen('screen-halloffame');
+  const loadingEl = document.getElementById('hof-loading');
+  const errorEl = document.getElementById('hof-error');
+  const listEl = document.getElementById('hof-list');
+
+  loadingEl.classList.remove('hidden');
+  errorEl.classList.add('hidden');
+  listEl.classList.add('hidden');
+  listEl.innerHTML = '';
+
+  try {
+    const response = await fetch('/api/scores/history');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const scores = await response.json();
+
+    loadingEl.classList.add('hidden');
+
+    if (scores.length === 0) {
+      errorEl.textContent = 'No scores yet — be the first to play!';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    listEl.innerHTML = scores.map((entry, i) => `
+      <div class="lb-item">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-name">${entry.nickname || entry.playerName}</span>
+        <span class="lb-score">${entry.score}</span>
+        <span class="lb-date">${new Date(entry.timestamp).toLocaleDateString()}</span>
+        <span class="lb-room">${entry.roomId}</span>
+      </div>
+    `).join('');
+    listEl.classList.remove('hidden');
+  } catch (err) {
+    loadingEl.classList.add('hidden');
+    errorEl.textContent = 'Failed to load Hall of Fame. Please try again.';
+    errorEl.classList.remove('hidden');
+  }
+}
+
+function showHallOfFameBack() {
+  showScreen(_prevScreen);
 }

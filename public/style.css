@@ -224,6 +224,14 @@ input[type=text]:focus { border-color: #e94560; }
 .lb-name { flex: 1; font-weight: 500; }
 .lb-score { font-weight: 700; color: #e94560; }
 .lb-item.me { background: rgba(233,69,96,0.15); border: 1px solid rgba(233,69,96,0.4); }
+.lb-date { font-size: .8rem; color: rgba(255,255,255,0.45); white-space: nowrap; }
+.lb-room { font-size: .75rem; color: rgba(255,255,255,0.35); letter-spacing: .05em; }
+
+.hof-error {
+  color: rgba(255,255,255,0.6);
+  font-size: .95rem;
+  margin-bottom: 1rem;
+}
 
 /* Podium */
 .podium {
