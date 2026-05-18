@@ -1,8 +1,19 @@
 const request = require('supertest');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
 
-// Each test gets a fresh module state
+let tempScoresFile;
+
 beforeEach(() => {
+  tempScoresFile = path.join(os.tmpdir(), `scores-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  process.env.SCORES_FILE = tempScoresFile;
   jest.resetModules();
+});
+
+afterEach(() => {
+  try { fs.unlinkSync(tempScoresFile); } catch { /* already gone */ }
+  delete process.env.SCORES_FILE;
 });
 
 function buildApp() {

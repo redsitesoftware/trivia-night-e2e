@@ -4,10 +4,22 @@ process.env.RATE_LIMIT_WINDOW_MS = '2000';
 process.env.RATE_LIMIT_MAX = '60';
 
 const request = require('supertest');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+
+let tempScoresFile;
 
 // Reload server with the env vars set above.
 beforeEach(() => {
+  tempScoresFile = path.join(os.tmpdir(), `scores-test-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  process.env.SCORES_FILE = tempScoresFile;
   jest.resetModules();
+});
+
+afterEach(() => {
+  try { fs.unlinkSync(tempScoresFile); } catch { /* already gone */ }
+  delete process.env.SCORES_FILE;
 });
 
 function buildApp() {
