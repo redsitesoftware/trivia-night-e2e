@@ -13,6 +13,8 @@ const {
 const { getTopScores, recordScore } = require('./src/scoreHistory');
 const { version } = require('./package.json');
 
+const pkg = require('./package.json');
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -23,7 +25,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+  res.json({ status: 'ok', version: pkg.version });
 });
 
 // GET /api/stats — server-wide stats: total rooms, active players, and app version
