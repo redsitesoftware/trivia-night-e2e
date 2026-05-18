@@ -1,6 +1,6 @@
 {
   "name": "trivia-night",
-  "version": "1.0.0",
+  "version": "1.0",
   "description": "Multiplayer trivia night web app",
   "main": "server.js",
   "scripts": {
