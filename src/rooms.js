@@ -27,7 +27,9 @@ function createRoom(hostWs, hostName) {
     currentQuestion: -1,
     timer: null,
     timerStartedAt: null,
-    answeredThisRound: new Set()
+    answeredThisRound: new Set(),
+    spectatorModeEnabled: true,
+    spectators: new Map()
   };
   rooms.set(code, room);
   return { room, playerId: hostId };
@@ -174,6 +176,38 @@ function submitAnswer(room, playerId, answerIndex) {
   return { correct: isCorrect, points, correctAnswer: q.answer };
 }
 
+function joinAsSpectator(room, ws) {
+  const spectatorId = uuidv4();
+  room.spectators.set(spectatorId, { id: spectatorId, ws });
+  return { spectatorId };
+}
+
+function removeSpectator(room, spectatorId) {
+  room.spectators.delete(spectatorId);
+}
+
+function getSpectatorCount(room) {
+  return room.spectators.size;
+}
+
+function disconnectAllSpectators(room, noticeMessage) {
+  const notice = JSON.stringify({ type: 'spectator_removed', reason: noticeMessage });
+  for (const spectator of room.spectators.values()) {
+    if (spectator.ws && spectator.ws.readyState === 1) {
+      spectator.ws.send(notice);
+      spectator.ws = null;
+    }
+  }
+  room.spectators.clear();
+}
+
+function broadcastToHost(room, message) {
+  const host = room.players.get(room.hostId);
+  if (host && host.ws && host.ws.readyState === 1) {
+    host.ws.send(JSON.stringify(message));
+  }
+}
+
 /**
  * Delete a room by code, clearing any active timer and removing all associated data.
  * Returns the deleted room object, or null if the room was not found.
@@ -204,5 +238,10 @@ module.exports = {
   nextQuestion,
   submitAnswer,
   deleteRoom,
+  joinAsSpectator,
+  removeSpectator,
+  getSpectatorCount,
+  disconnectAllSpectators,
+  broadcastToHost,
   QUESTION_TIME_SECS
 };
