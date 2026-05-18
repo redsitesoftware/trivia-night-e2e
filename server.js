@@ -8,7 +8,8 @@ const {
   joinRoom, joinRoomHttp,
   attachPlayerWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
-  nextQuestion, submitAnswer, deleteRoom
+  nextQuestion, submitAnswer, deleteRoom,
+  joinAsSpectator, removeSpectator, getSpectatorCount, broadcastToHost
 } = require('./src/rooms');
 const { getTopScores, recordScore } = require('./src/scoreHistory');
 
@@ -165,6 +166,7 @@ function onTimerEnd(room, onTick, onEnd) {
 wss.on('connection', (ws) => {
   let playerId = null;
   let roomCode = null;
+  let spectatorId = null;
 
   ws.on('message', (raw) => {
     let msg;
@@ -259,11 +261,34 @@ wss.on('connection', (ws) => {
         });
         break;
       }
+
+      case 'join_as_spectator': {
+        const room = getRoom(msg.code);
+        if (!room) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+          return;
+        }
+        if (!room.spectatorModeEnabled) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Spectator mode is disabled for this session' }));
+          return;
+        }
+        spectatorId = joinAsSpectator(room, ws);
+        roomCode = room.code;
+        ws.send(JSON.stringify({ type: 'spectator_joined', spectatorId, code: room.code }));
+        broadcastToHost(room, { type: 'spectator_count', count: getSpectatorCount(room) });
+        break;
+      }
     }
   });
 
   ws.on('close', () => {
-    if (playerId && roomCode) {
+    if (spectatorId && roomCode) {
+      const room = getRoom(roomCode);
+      if (room) {
+        removeSpectator(room, spectatorId);
+        broadcastToHost(room, { type: 'spectator_count', count: getSpectatorCount(room) });
+      }
+    } else if (playerId && roomCode) {
       const room = getRoomByPlayer(playerId);
       if (room) {
         const player = room.players.get(playerId);

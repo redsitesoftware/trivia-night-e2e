@@ -23,6 +23,8 @@ function createRoom(hostWs, hostName) {
     hostId,
     state: 'lobby',
     players: new Map([[hostId, { id: hostId, name: hostName, score: 0, ws: hostWs }]]),
+    spectators: new Map(),
+    spectatorModeEnabled: false,
     questions: [],
     currentQuestion: -1,
     timer: null,
@@ -175,6 +177,40 @@ function submitAnswer(room, playerId, answerIndex) {
 }
 
 /**
+ * Add a spectator WebSocket connection to the room.
+ * Returns the new spectatorId.
+ */
+function joinAsSpectator(room, ws) {
+  const spectatorId = uuidv4();
+  room.spectators.set(spectatorId, { id: spectatorId, ws });
+  return spectatorId;
+}
+
+/**
+ * Remove a spectator from the room by their spectatorId.
+ */
+function removeSpectator(room, spectatorId) {
+  room.spectators.delete(spectatorId);
+}
+
+/**
+ * Return the number of spectators currently in the room.
+ */
+function getSpectatorCount(room) {
+  return room.spectators.size;
+}
+
+/**
+ * Send a message directly to the host WebSocket connection.
+ */
+function broadcastToHost(room, message) {
+  const host = room.players.get(room.hostId);
+  if (host && host.ws && host.ws.readyState === 1) {
+    host.ws.send(JSON.stringify(message));
+  }
+}
+
+/**
  * Delete a room by code, clearing any active timer and removing all associated data.
  * Returns the deleted room object, or null if the room was not found.
  */
@@ -204,5 +240,9 @@ module.exports = {
   nextQuestion,
   submitAnswer,
   deleteRoom,
+  joinAsSpectator,
+  removeSpectator,
+  getSpectatorCount,
+  broadcastToHost,
   QUESTION_TIME_SECS
 };
