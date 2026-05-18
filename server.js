@@ -297,7 +297,7 @@ wss.on('connection', (ws) => {
       case 'submit_answer': {
         const room = getRoomByPlayer(playerId);
         if (!room) return;
-        const result = submitAnswer(room, playerId, msg.answer);
+        const result = submitAnswer(room, playerId, msg.answer, onTimerTick, onTimerEnd);
         if (result.error) {
           ws.send(JSON.stringify({ type: 'error', message: result.error }));
           return;
