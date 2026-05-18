@@ -152,7 +152,7 @@ function startGame(room, onTimerTick, onTimerEnd) {
   return true;
 }
 
-function submitAnswer(room, playerId, answerIndex) {
+function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   if (room.state !== 'question') return { error: 'No active question' };
   if (room.answeredThisRound && room.answeredThisRound.has(playerId)) {
     return { error: 'Already answered' };
@@ -173,7 +173,16 @@ function submitAnswer(room, playerId, answerIndex) {
     player.score += points;
   }
 
-  return { correct: isCorrect, points, correctAnswer: q.answer };
+  const allAnswered = room.answeredThisRound.size === room.players.size;
+  if (allAnswered && onTimerTick && onTimerEnd) {
+    if (room.timer) {
+      clearInterval(room.timer);
+      room.timer = null;
+    }
+    onTimerEnd(room, onTimerTick, onTimerEnd);
+  }
+
+  return { correct: isCorrect, points, correctAnswer: q.answer, allAnswered };
 }
 
 function joinAsSpectator(room, ws) {
