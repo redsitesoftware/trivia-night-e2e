@@ -225,6 +225,80 @@ input[type=text]:focus { border-color: #e94560; }
 .lb-score { font-weight: 700; color: #e94560; }
 .lb-item.me { background: rgba(233,69,96,0.15); border: 1px solid rgba(233,69,96,0.4); }
 
+/* ─── Spectator View ──────────────────────────────────────────────────────── */
+
+/* Prominent banner indicating read-only spectator status */
+.spectator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: rgba(38,198,218,0.15);
+  border: 1px solid rgba(38,198,218,0.5);
+  border-radius: 20px;
+  padding: .35rem .9rem;
+  font-size: .85rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #26c6da;
+  margin-bottom: 1rem;
+}
+
+/* Read-only answer option buttons in spectator view */
+.option-btn--readonly,
+.spectator-screen .option-btn[disabled] {
+  opacity: .45;
+  cursor: default;
+  pointer-events: none;
+  border-color: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+}
+
+/* Prevent hover/active states leaking onto read-only buttons */
+.option-btn--readonly:hover,
+.spectator-screen .option-btn[disabled]:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* Spectator leaderboard — same layout as .leaderboard-list, no "you" highlight */
+#spec-leaderboard-list { text-align: left; }
+#spec-leaderboard-list .lb-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .6rem .75rem;
+  background: rgba(255,255,255,0.06);
+  border-radius: 10px;
+  margin-bottom: .5rem;
+}
+/* Explicitly suppress the "me" row highlight for spectators */
+#spec-leaderboard-list .lb-item.me {
+  background: rgba(255,255,255,0.06);
+  border: none;
+}
+
+/* Spectator lobby waiting message */
+.spectator-waiting {
+  padding: .75rem 1rem;
+  background: rgba(38,198,218,0.08);
+  border: 1px solid rgba(38,198,218,0.25);
+  border-radius: 10px;
+  color: rgba(255,255,255,0.7);
+  font-size: .9rem;
+  text-align: center;
+  margin-top: .75rem;
+}
+
+/* Game-over / final results within spectator screen */
+.spectator-screen #podium { margin: 1.5rem 0; }
+.spectator-screen #full-leaderboard { text-align: left; }
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .spectator-badge { font-size: .75rem; padding: .3rem .7rem; }
+}
+
 /* Podium */
 .podium {
   display: flex;
