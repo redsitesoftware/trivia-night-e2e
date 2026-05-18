@@ -152,7 +152,7 @@ function startGame(room, onTimerTick, onTimerEnd) {
   return true;
 }
 
-function submitAnswer(room, playerId, answerIndex) {
+function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   if (room.state !== 'question') return { error: 'No active question' };
   if (room.answeredThisRound && room.answeredThisRound.has(playerId)) {
     return { error: 'Already answered' };
@@ -171,6 +171,18 @@ function submitAnswer(room, playerId, answerIndex) {
     const remainingSeconds = Math.max(0, QUESTION_TIME_SECS - elapsed);
     points = Math.round(1000 * remainingSeconds / QUESTION_TIME_SECS);
     player.score += points;
+  }
+
+  // Early-advance: if all players have answered and callbacks are provided, cancel the
+  // timer and immediately trigger end-of-question flow.
+  if (
+    onTimerEnd &&
+    room.timer != null &&
+    room.answeredThisRound.size >= room.players.size
+  ) {
+    clearInterval(room.timer);
+    room.timer = null;
+    onTimerEnd(room, onTimerTick, onTimerEnd);
   }
 
   return { correct: isCorrect, points, correctAnswer: q.answer };
