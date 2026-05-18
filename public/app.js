@@ -144,6 +144,25 @@ function showHome() {
 }
 function showCreateRoom() { showScreen('screen-create'); }
 function showJoinRoom() { showScreen('screen-join'); }
+function showSpectatorJoin() { showScreen('screen-spectator-join'); }
+
+async function joinAsSpectator() {
+  const code = document.getElementById('spectator-join-code').value.trim().toUpperCase();
+  const name = document.getElementById('spectator-display-name').value.trim();
+  const errorEl = document.getElementById('spectator-error');
+
+  errorEl.classList.add('hidden');
+  errorEl.textContent = '';
+
+  if (!code || code.length !== 6) {
+    errorEl.textContent = 'Enter a valid 6-character game code.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  await connect();
+  send({ type: 'spectate_room', code, name });
+}
 
 function resetState() {
   if (reconnectTimer) {

@@ -15,6 +15,7 @@
     <p class="subtitle">Multiplayer Quiz Game</p>
     <button class="btn btn-primary" onclick="showCreateRoom()">Create Room</button>
     <button class="btn btn-secondary" onclick="showJoinRoom()">Join Room</button>
+    <button class="btn btn-spectator" onclick="showSpectatorJoin()">👁️ Watch as Spectator</button>
   </div>
 </div>
 
@@ -35,6 +36,18 @@
     <input id="join-code" type="text" placeholder="6-character code" maxlength="6" style="text-transform:uppercase">
     <input id="player-name" type="text" placeholder="Your display name" maxlength="20">
     <button class="btn btn-primary" onclick="joinRoom()">Join</button>
+    <button class="btn btn-ghost" onclick="showHome()">← Back</button>
+  </div>
+</div>
+
+<!-- SCREEN: Spectator Join -->
+<div id="screen-spectator-join" class="screen">
+  <div class="card card-spectator">
+    <h2>👁️ Watch as Spectator</h2>
+    <input id="spectator-join-code" type="text" placeholder="6-character game code" maxlength="6" style="text-transform:uppercase">
+    <input id="spectator-display-name" type="text" placeholder="Display name (optional)" maxlength="20">
+    <div id="spectator-error" class="spectator-error hidden"></div>
+    <button class="btn btn-watch" onclick="joinAsSpectator()">Watch</button>
     <button class="btn btn-ghost" onclick="showHome()">← Back</button>
   </div>
 </div>

@@ -115,7 +115,24 @@ input[type=text]:focus { border-color: #e94560; }
   50% { opacity: .7; }
 }
 
-/* Question screen */
+.btn-spectator { background: rgba(105,240,174,0.15); color: #69f0ae; border: 1px solid rgba(105,240,174,0.4); }
+.btn-spectator:hover { background: rgba(105,240,174,0.25); }
+.btn-watch { background: #1de9b6; color: #0f3460; }
+.btn-watch:hover { opacity: .9; }
+
+.card-spectator { border-color: rgba(29,233,182,0.35); }
+.card-spectator h2 { color: #1de9b6; }
+.card-spectator input[type=text]:focus { border-color: #1de9b6; }
+
+.spectator-error {
+  background: rgba(233,69,96,0.15);
+  color: #e94560;
+  border-radius: 8px;
+  padding: .6rem .75rem;
+  margin-bottom: 1rem;
+  font-size: .9rem;
+  font-weight: 500;
+}
 #screen-question {
   display: none;
   flex-direction: column;
