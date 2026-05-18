@@ -15,6 +15,7 @@
     <p class="subtitle">Multiplayer Quiz Game</p>
     <button class="btn btn-primary" onclick="showCreateRoom()">Create Room</button>
     <button class="btn btn-secondary" onclick="showJoinRoom()">Join Room</button>
+    <button class="btn btn-ghost btn-spectator" onclick="showSpectatorJoin()">👁 Watch as Spectator</button>
   </div>
 </div>
 
@@ -96,6 +97,54 @@
 
 <div id="reconnect-banner" class="reconnect-banner hidden">
   🔄 Reconnecting…
+</div>
+
+<!-- SCREEN: Spectator Join -->
+<div id="screen-spectator-join" class="screen">
+  <div class="card">
+    <h2>👁 Watch as Spectator</h2>
+    <input id="spec-join-code" type="text" placeholder="6-character room code" maxlength="6" style="text-transform:uppercase">
+    <input id="spec-display-name" type="text" placeholder="Display name (optional)" maxlength="20">
+    <button class="btn btn-primary" onclick="joinAsSpectator()">Watch</button>
+    <button class="btn btn-ghost" onclick="showHome()">← Back</button>
+  </div>
+</div>
+
+<!-- SCREEN: Spectator View -->
+<div id="screen-spectator" class="screen spectator-mode">
+  <div class="spectator-badge">👁 Spectator Mode</div>
+
+  <div id="spec-lobby-msg" class="card spectator-lobby">
+    <p>⏳ Waiting for the game to start…</p>
+  </div>
+
+  <div id="spec-game-wrap" class="hidden">
+    <div class="question-header">
+      <div id="spec-q-category" class="category-badge"></div>
+      <div id="spec-q-progress" class="progress-text"></div>
+      <div id="spec-timer-bar-wrap">
+        <div id="spec-timer-bar"></div>
+        <span id="spec-timer-text">30</span>
+      </div>
+    </div>
+    <div class="card question-card">
+      <p id="spec-q-text" class="question-text"></p>
+      <div id="spec-options-grid" class="options-grid spec-options-grid"></div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <h3 style="margin-bottom:.75rem;font-size:1rem;opacity:.7">📊 Live Scores</h3>
+      <div id="spec-leaderboard-list" class="leaderboard-list"></div>
+    </div>
+  </div>
+
+  <div id="spec-gameover-wrap" class="hidden">
+    <div class="card">
+      <h2>🏆 Final Results</h2>
+      <div id="spec-podium" class="podium"></div>
+      <div id="spec-full-leaderboard" class="leaderboard-list"></div>
+      <button class="btn btn-ghost" onclick="showHome()" style="margin-top:1rem">← Back to Home</button>
+    </div>
+  </div>
 </div>
 
 <script src="app.js"></script>

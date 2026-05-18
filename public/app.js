@@ -139,6 +139,11 @@ function showHome() {
     ws.close();
     ws = null;
   }
+  if (specWs) {
+    specWs.onclose = null;
+    specWs.close();
+    specWs = null;
+  }
   showScreen('screen-home');
   resetState();
 }
@@ -315,4 +320,131 @@ function showGameOver(leaderboard) {
 
   renderLeaderboard('full-leaderboard', leaderboard);
   showScreen('screen-gameover');
+}
+
+/* ===== Spectator ===== */
+let specWs = null;
+let specState = { roomCode: null, timerMax: 30 };
+
+function showSpectatorJoin() { showScreen('screen-spectator-join'); }
+
+async function joinAsSpectator() {
+  const code = document.getElementById('spec-join-code').value.trim().toUpperCase();
+  const name = document.getElementById('spec-display-name').value.trim() || 'Spectator';
+  if (!code || code.length !== 6) { alert('Enter a valid 6-character code'); return; }
+
+  specState.roomCode = code;
+
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  specWs = new WebSocket(`${proto}://${location.host}`);
+
+  specWs.onopen = () => {
+    specWs.send(JSON.stringify({ type: 'join_as_spectator', code, name }));
+  };
+
+  specWs.onmessage = (e) => handleSpectatorMessage(JSON.parse(e.data));
+
+  specWs.onerror = () => { alert('Connection error. Check the room code and try again.'); };
+
+  specWs.onclose = () => {
+    // nothing — spectators don't reconnect automatically
+  };
+
+  showScreen('screen-spectator');
+  document.getElementById('spec-lobby-msg').classList.remove('hidden');
+  document.getElementById('spec-game-wrap').classList.add('hidden');
+  document.getElementById('spec-gameover-wrap').classList.add('hidden');
+}
+
+function handleSpectatorMessage(msg) {
+  switch (msg.type) {
+    case 'spectator_joined':
+      // Successfully joined — stay on lobby msg until game starts
+      break;
+
+    case 'question_start':
+      document.getElementById('spec-lobby-msg').classList.add('hidden');
+      document.getElementById('spec-game-wrap').classList.remove('hidden');
+      document.getElementById('spec-gameover-wrap').classList.add('hidden');
+      showSpectatorQuestion(msg);
+      break;
+
+    case 'timer_tick':
+      updateSpectatorTimer(msg.remaining);
+      break;
+
+    case 'question_end':
+      revealSpectatorAnswers(msg.correctAnswer);
+      break;
+
+    case 'leaderboard_update':
+    case 'score-update':
+      renderLeaderboard('spec-leaderboard-list', msg.leaderboard);
+      break;
+
+    case 'game_over':
+      showSpectatorGameOver(msg.leaderboard);
+      break;
+
+    case 'error':
+      alert(msg.message);
+      break;
+  }
+}
+
+function showSpectatorQuestion(msg) {
+  specState.timerMax = msg.timeLimit;
+
+  document.getElementById('spec-q-category').textContent = msg.category;
+  document.getElementById('spec-q-progress').textContent = `Question ${msg.index + 1} of ${msg.total}`;
+  document.getElementById('spec-q-text').textContent = msg.question;
+
+  const grid = document.getElementById('spec-options-grid');
+  const labels = ['A', 'B', 'C', 'D'];
+  grid.innerHTML = msg.options.map((opt, i) => `
+    <button class="option-btn option-btn--readonly" data-index="${i}" disabled>
+      <strong>${labels[i]}.</strong> ${opt}
+    </button>
+  `).join('');
+
+  updateSpectatorTimer(msg.timeLimit);
+  document.getElementById('spec-timer-bar').style.width = '100%';
+  document.getElementById('spec-timer-bar').style.backgroundColor = '#e94560';
+}
+
+function updateSpectatorTimer(remaining) {
+  document.getElementById('spec-timer-text').textContent = remaining;
+  const pct = (remaining / specState.timerMax) * 100;
+  document.getElementById('spec-timer-bar').style.width = pct + '%';
+  const color = pct > 50 ? '#69f0ae' : pct > 25 ? '#ffd740' : '#e94560';
+  document.getElementById('spec-timer-bar').style.backgroundColor = color;
+}
+
+function revealSpectatorAnswers(correctIndex) {
+  document.querySelectorAll('#spec-options-grid .option-btn').forEach(btn => {
+    if (parseInt(btn.dataset.index) === correctIndex) btn.classList.add('correct');
+  });
+}
+
+function showSpectatorGameOver(leaderboard) {
+  document.getElementById('spec-game-wrap').classList.add('hidden');
+  document.getElementById('spec-gameover-wrap').classList.remove('hidden');
+
+  const podiumEl = document.getElementById('spec-podium');
+  const podiumEmojis = ['🥇', '🥈', '🥉'];
+  const top3 = leaderboard.slice(0, 3);
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
+  podiumEl.innerHTML = podiumOrder.map((p) => {
+    const rank = leaderboard.indexOf(p);
+    return `
+      <div class="podium-place">
+        <span class="podium-emoji">${podiumEmojis[rank] || ''}</span>
+        <span class="podium-name">${p.name}</span>
+        <span class="podium-score">${p.score} pts</span>
+        <div class="podium-block"></div>
+      </div>
+    `;
+  }).join('');
+
+  renderLeaderboard('spec-full-leaderboard', leaderboard);
 }
