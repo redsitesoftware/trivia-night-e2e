@@ -12,6 +12,8 @@ const {
 } = require('./src/rooms');
 const { getTopScores, recordScore } = require('./src/scoreHistory');
 
+const pkg = require('./package.json');
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -22,7 +24,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+  res.json({ status: 'ok', version: pkg.version });
 });
 
 // GET /api/scores/history — top 10 all-time scores sorted by score descending (60 req/min per IP)
