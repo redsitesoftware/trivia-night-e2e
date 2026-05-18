@@ -11,6 +11,7 @@ const {
   nextQuestion, submitAnswer, deleteRoom
 } = require('./src/rooms');
 const { getTopScores, recordScore } = require('./src/scoreHistory');
+const pkg = require('./package.json');
 
 const app = express();
 const server = http.createServer(app);
