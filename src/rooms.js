@@ -190,6 +190,16 @@ function getSpectatorCount(room) {
   return room.spectators.size;
 }
 
+/**
+ * Returns true when all players in the room have submitted an answer this round.
+ * Guards against spurious triggers by requiring room.state === 'question' and at least one player.
+ */
+function allPlayersAnswered(room) {
+  if (!room || room.state !== 'question') return false;
+  if (room.players.size === 0) return false;
+  return room.answeredThisRound.size >= room.players.size;
+}
+
 function disconnectAllSpectators(room, noticeMessage) {
   const notice = JSON.stringify({ type: 'spectator_removed', reason: noticeMessage });
   for (const spectator of room.spectators.values()) {
@@ -243,5 +253,6 @@ module.exports = {
   getSpectatorCount,
   disconnectAllSpectators,
   broadcastToHost,
+  allPlayersAnswered,
   QUESTION_TIME_SECS
 };
