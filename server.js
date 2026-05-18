@@ -8,7 +8,7 @@ const {
   joinRoom, joinRoomHttp,
   attachPlayerWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
-  nextQuestion, submitAnswer, deleteRoom,
+  nextQuestion, submitAnswer, allPlayersAnswered, deleteRoom,
   joinAsSpectator, removeSpectator, getSpectatorCount,
   disconnectAllSpectators, broadcastToHost
 } = require('./src/rooms');
@@ -162,6 +162,12 @@ app.post('/api/rooms/:code/answer', (req, res) => {
     type: 'score-update',
     leaderboard: getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }))
   });
+
+  if (room.state === 'question' && allPlayersAnswered(room)) {
+    clearInterval(room.timer);
+    room.timer = null;
+    onTimerEnd(room, onTimerTick, onTimerEnd);
+  }
 
   res.json({ correct: result.correct, points: result.points, correctAnswer: result.correctAnswer });
 });

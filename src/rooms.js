@@ -152,6 +152,10 @@ function startGame(room, onTimerTick, onTimerEnd) {
   return true;
 }
 
+function allPlayersAnswered(room) {
+  return room.answeredThisRound.size >= room.players.size;
+}
+
 function submitAnswer(room, playerId, answerIndex) {
   if (room.state !== 'question') return { error: 'No active question' };
   if (room.answeredThisRound && room.answeredThisRound.has(playerId)) {
@@ -237,6 +241,7 @@ module.exports = {
   startGame,
   nextQuestion,
   submitAnswer,
+  allPlayersAnswered,
   deleteRoom,
   joinAsSpectator,
   removeSpectator,
