@@ -23,6 +23,7 @@ function createRoom(hostWs, hostName) {
     hostId,
     state: 'lobby',
     players: new Map([[hostId, { id: hostId, name: hostName, score: 0, ws: hostWs }]]),
+    spectators: new Map(),
     questions: [],
     currentQuestion: -1,
     timer: null,
@@ -98,6 +99,49 @@ function broadcast(room, message) {
       player.ws.send(data);
     }
   }
+  for (const spectator of room.spectators.values()) {
+    if (spectator.ws && spectator.ws.readyState === 1) {
+      spectator.ws.send(data);
+    }
+  }
+}
+
+/**
+ * Join a room as a spectator (read-only observer).
+ * Returns { room, spectatorId } on success or { error } on failure.
+ */
+function joinAsSpectator(code, ws) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return { error: 'Room not found' };
+
+  const spectatorId = uuidv4();
+  room.spectators.set(spectatorId, { id: spectatorId, ws });
+  return { room, spectatorId };
+}
+
+/**
+ * Attach (or update) the WebSocket for an existing spectator in a room.
+ * Returns the room if found, or null.
+ */
+function attachSpectatorWs(spectatorId, ws) {
+  for (const room of rooms.values()) {
+    const spectator = room.spectators.get(spectatorId);
+    if (spectator) {
+      spectator.ws = ws;
+      return room;
+    }
+  }
+  return null;
+}
+
+/**
+ * Find the room a spectator belongs to.
+ */
+function getRoomBySpectator(spectatorId) {
+  for (const room of rooms.values()) {
+    if (room.spectators.has(spectatorId)) return room;
+  }
+  return null;
 }
 
 function nextQuestion(room, onTimerTick, onTimerEnd) {
@@ -196,6 +240,9 @@ module.exports = {
   joinRoom,
   joinRoomHttp,
   attachPlayerWs,
+  joinAsSpectator,
+  attachSpectatorWs,
+  getRoomBySpectator,
   getRoom,
   getRoomByPlayer,
   getLeaderboard,
