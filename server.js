@@ -7,7 +7,8 @@ const {
   createRoom, createRoomHttp,
   joinRoom, joinRoomHttp,
   attachPlayerWs, getRoom,
-  getRoomByPlayer, getLeaderboard, broadcast, startGame,
+  getRoomByPlayer, getRoomBySpectator, joinSpectator,
+  getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer, deleteRoom
 } = require('./src/rooms');
 const { getTopScores, recordScore } = require('./src/scoreHistory');
@@ -164,6 +165,7 @@ function onTimerEnd(room, onTick, onEnd) {
 // WebSocket message handlers
 wss.on('connection', (ws) => {
   let playerId = null;
+  let spectatorId = null;
   let roomCode = null;
 
   ws.on('message', (raw) => {
@@ -259,6 +261,18 @@ wss.on('connection', (ws) => {
         });
         break;
       }
+
+      case 'join_spectator': {
+        const result = joinSpectator(msg.code, ws, msg.displayName || 'Spectator');
+        if (result.error) {
+          ws.send(JSON.stringify({ type: 'error', message: result.error }));
+          return;
+        }
+        spectatorId = result.spectatorId;
+        roomCode = result.room.code;
+        ws.send(JSON.stringify({ type: 'spectator_joined', code: roomCode, spectatorId }));
+        break;
+      }
     }
   });
 
@@ -268,6 +282,13 @@ wss.on('connection', (ws) => {
       if (room) {
         const player = room.players.get(playerId);
         if (player) player.ws = null;
+      }
+    }
+    if (spectatorId) {
+      const room = getRoomBySpectator(spectatorId);
+      if (room) {
+        const spectator = room.spectators.get(spectatorId);
+        if (spectator) spectator.ws = null;
       }
     }
   });
