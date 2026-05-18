@@ -3,6 +3,7 @@ const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const pkg = require('./package.json');
 const {
   createRoom, createRoomHttp,
   joinRoom, joinRoomHttp,
@@ -22,7 +23,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+  res.json({ status: 'ok', version: pkg.version });
 });
 
 // GET /api/scores/history — top 10 all-time scores sorted by score descending (60 req/min per IP)
