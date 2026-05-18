@@ -23,6 +23,7 @@ function createRoom(hostWs, hostName) {
     hostId,
     state: 'lobby',
     players: new Map([[hostId, { id: hostId, name: hostName, score: 0, ws: hostWs }]]),
+    spectators: new Map(),
     questions: [],
     currentQuestion: -1,
     timer: null,
@@ -175,6 +176,30 @@ function submitAnswer(room, playerId, answerIndex) {
 }
 
 /**
+ * Add a spectator to an existing room (any state).
+ * Spectators observe the game but do not participate — they have no score.
+ * Returns { room, spectatorId } on success, or { error } if the room is not found.
+ */
+function joinSpectator(code, ws, name) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return { error: 'Room not found' };
+
+  const spectatorId = uuidv4();
+  room.spectators.set(spectatorId, { id: spectatorId, name, ws });
+  return { room, spectatorId };
+}
+
+/**
+ * Remove a spectator from a room without affecting game state.
+ * Returns true if the spectator was found and removed, false otherwise.
+ */
+function removeSpectator(code, spectatorId) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return false;
+  return room.spectators.delete(spectatorId);
+}
+
+/**
  * Delete a room by code, clearing any active timer and removing all associated data.
  * Returns the deleted room object, or null if the room was not found.
  */
@@ -195,6 +220,8 @@ module.exports = {
   createRoomHttp,
   joinRoom,
   joinRoomHttp,
+  joinSpectator,
+  removeSpectator,
   attachPlayerWs,
   getRoom,
   getRoomByPlayer,

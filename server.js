@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const {
   createRoom, createRoomHttp,
   joinRoom, joinRoomHttp,
+  joinSpectator, removeSpectator,
   attachPlayerWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer, deleteRoom
@@ -164,6 +165,7 @@ function onTimerEnd(room, onTick, onEnd) {
 // WebSocket message handlers
 wss.on('connection', (ws) => {
   let playerId = null;
+  let spectatorId = null;
   let roomCode = null;
 
   ws.on('message', (raw) => {
@@ -243,7 +245,23 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case 'join_spectator': {
+        const result = joinSpectator(msg.code, ws, msg.name || 'Spectator');
+        if (result.error) {
+          ws.send(JSON.stringify({ type: 'error', message: result.error }));
+          return;
+        }
+        spectatorId = result.spectatorId;
+        roomCode = result.room.code;
+        ws.send(JSON.stringify({ type: 'spectator_joined', spectatorId, code: roomCode }));
+        break;
+      }
+
       case 'submit_answer': {
+        if (spectatorId && !playerId) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Spectators cannot submit answers' }));
+          return;
+        }
         const room = getRoomByPlayer(playerId);
         if (!room) return;
         const result = submitAnswer(room, playerId, msg.answer);
@@ -269,6 +287,8 @@ wss.on('connection', (ws) => {
         const player = room.players.get(playerId);
         if (player) player.ws = null;
       }
+    } else if (spectatorId && roomCode) {
+      removeSpectator(roomCode, spectatorId);
     }
   });
 });
