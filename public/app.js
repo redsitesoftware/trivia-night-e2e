@@ -7,6 +7,8 @@ let state = {
   roomCode: null,
   playerName: null,
   isHost: false,
+  isSpectator: false,
+  spectatorId: null,
   timerMax: 30,
   timerRemaining: 30,
   answered: false,
@@ -23,7 +25,9 @@ function connect() {
     ws.onopen = () => {
       retryCount = 0;
       hideReconnectBanner();
-      if (state.playerId) {
+      if (state.spectatorId) {
+        send({ type: 'reconnect', playerId: state.spectatorId });
+      } else if (state.playerId) {
         send({ type: 'reconnect', playerId: state.playerId });
       }
       resolve();
@@ -36,7 +40,7 @@ function connect() {
     };
 
     ws.onclose = () => {
-      if (state.playerId && state.roomCode) {
+      if ((state.playerId || state.spectatorId) && state.roomCode) {
         scheduleReconnect();
       }
     };
@@ -86,16 +90,31 @@ function handleMessage(msg) {
       showLobby(msg.code, msg.players);
       break;
 
+    case 'spectator_joined':
+      state.spectatorId = msg.spectatorId;
+      state.roomCode = msg.code;
+      state.isSpectator = true;
+      showSpectatorLobby(msg.code);
+      break;
+
     case 'player_joined':
       updatePlayerList(msg.players);
       break;
 
     case 'question_start':
-      showQuestion(msg);
+      if (state.isSpectator) {
+        showSpectatorQuestion(msg);
+      } else {
+        showQuestion(msg);
+      }
       break;
 
     case 'timer_tick':
-      updateTimer(msg.remaining);
+      if (state.isSpectator) {
+        updateSpectatorTimer(msg.remaining);
+      } else {
+        updateTimer(msg.remaining);
+      }
       break;
 
     case 'answer_result':
@@ -103,22 +122,31 @@ function handleMessage(msg) {
       break;
 
     case 'question_end':
-      revealAnswers(msg.correctAnswer);
-      showLeaderboardInterstitial(msg.leaderboard);
+      if (state.isSpectator) {
+        revealSpectatorAnswers(msg.correctAnswer);
+        showSpectatorLeaderboard(msg.leaderboard);
+      } else {
+        revealAnswers(msg.correctAnswer);
+        showLeaderboardInterstitial(msg.leaderboard);
+      }
       break;
 
     case 'leaderboard_update':
       state.leaderboard = msg.leaderboard;
-      renderLeaderboard('leaderboard-list', msg.leaderboard);
+      renderLeaderboard(state.isSpectator ? 'spec-leaderboard-list' : 'leaderboard-list', msg.leaderboard);
       break;
 
     case 'score-update':
       state.leaderboard = msg.leaderboard;
-      renderLeaderboard('leaderboard-list', msg.leaderboard);
+      renderLeaderboard(state.isSpectator ? 'spec-leaderboard-list' : 'leaderboard-list', msg.leaderboard);
       break;
 
     case 'game_over':
-      showGameOver(msg.leaderboard);
+      if (state.isSpectator) {
+        showSpectatorGameOver(msg.leaderboard);
+      } else {
+        showGameOver(msg.leaderboard);
+      }
       break;
 
     case 'error':
@@ -144,6 +172,7 @@ function showHome() {
 }
 function showCreateRoom() { showScreen('screen-create'); }
 function showJoinRoom() { showScreen('screen-join'); }
+function showSpectatorJoin() { showScreen('screen-spectator-join'); }
 
 function resetState() {
   if (reconnectTimer) {
@@ -152,7 +181,7 @@ function resetState() {
   }
   retryCount = 0;
   hideReconnectBanner();
-  state = { playerId: null, roomCode: null, playerName: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
+  state = { playerId: null, roomCode: null, playerName: null, isHost: false, isSpectator: false, spectatorId: null, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
 }
 
 /* ===== Room actions ===== */
@@ -172,6 +201,15 @@ async function joinRoom() {
   state.playerName = name;
   await connect();
   send({ type: 'join_room', code, name });
+}
+
+async function joinAsSpectator() {
+  const code = document.getElementById('spec-join-code').value.trim().toUpperCase();
+  const name = document.getElementById('spec-join-name').value.trim();
+  if (!code || code.length !== 6) { alert('Enter a valid 6-character code'); return; }
+  state.playerName = name || 'Spectator';
+  await connect();
+  send({ type: 'join_as_spectator', code, name: name || '' });
 }
 
 function startGame() {
@@ -236,7 +274,7 @@ function updateTimer(remaining) {
 }
 
 function submitAnswer(index) {
-  if (state.answered) return;
+  if (state.isSpectator || state.answered) return;
   state.answered = true;
   state.selectedAnswer = index;
 
@@ -315,4 +353,61 @@ function showGameOver(leaderboard) {
 
   renderLeaderboard('full-leaderboard', leaderboard);
   showScreen('screen-gameover');
+}
+
+/* ===== Spectator ===== */
+function showSpectatorLobby(code) {
+  document.getElementById('spec-lobby-code').textContent = code;
+  document.getElementById('spec-lobby-msg').classList.remove('hidden');
+  document.getElementById('spec-gameover-panel').classList.add('hidden');
+  showScreen('screen-spectator');
+}
+
+function showSpectatorQuestion(msg) {
+  state.timerMax = msg.timeLimit;
+  state.timerRemaining = msg.timeLimit;
+
+  document.getElementById('spec-q-category').textContent = msg.category;
+  document.getElementById('spec-q-progress').textContent = `Question ${msg.index + 1} of ${msg.total}`;
+  document.getElementById('spec-q-text').textContent = msg.question;
+
+  const grid = document.getElementById('spec-options-grid');
+  const labels = ['A', 'B', 'C', 'D'];
+  grid.innerHTML = msg.options.map((opt, i) => `
+    <button class="option-btn option-btn--readonly" data-index="${i}" disabled>
+      <strong>${labels[i]}.</strong> ${opt}
+    </button>
+  `).join('');
+
+  updateSpectatorTimer(msg.timeLimit);
+  document.getElementById('spec-timer-bar').style.width = '100%';
+  document.getElementById('spec-timer-bar').style.backgroundColor = '#e94560';
+  document.getElementById('spec-lobby-msg').classList.add('hidden');
+  document.getElementById('spec-gameover-panel').classList.add('hidden');
+  showScreen('screen-spectator');
+}
+
+function updateSpectatorTimer(remaining) {
+  state.timerRemaining = remaining;
+  document.getElementById('spec-timer-text').textContent = remaining;
+  const pct = (remaining / state.timerMax) * 100;
+  document.getElementById('spec-timer-bar').style.width = pct + '%';
+  const color = pct > 50 ? '#69f0ae' : pct > 25 ? '#ffd740' : '#e94560';
+  document.getElementById('spec-timer-bar').style.backgroundColor = color;
+}
+
+function revealSpectatorAnswers(correctIndex) {
+  document.querySelectorAll('#spec-options-grid .option-btn').forEach(btn => {
+    if (parseInt(btn.dataset.index) === correctIndex) btn.classList.add('correct');
+  });
+}
+
+function showSpectatorLeaderboard(leaderboard) {
+  renderLeaderboard('spec-leaderboard-list', leaderboard);
+}
+
+function showSpectatorGameOver(leaderboard) {
+  renderLeaderboard('spec-leaderboard-list', leaderboard);
+  document.getElementById('spec-gameover-panel').classList.remove('hidden');
+  showScreen('screen-spectator');
 }

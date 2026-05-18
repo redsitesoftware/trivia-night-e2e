@@ -250,3 +250,27 @@ input[type=text]:focus { border-color: #e94560; }
 .podium-place:nth-child(1) .podium-block { height: 80px; background: rgba(255,215,0,0.25); border: 2px solid gold; }
 .podium-place:nth-child(2) .podium-block { height: 55px; background: rgba(192,192,192,0.2); border: 2px solid silver; }
 .podium-place:nth-child(3) .podium-block { height: 40px; background: rgba(205,127,50,0.2); border: 2px solid #cd7f32; }
+
+/* ===== Spectator Mode ===== */
+.spectator-badge {
+  text-align: center;
+  padding: .4rem 1rem;
+  background: rgba(105,240,174,0.15);
+  border: 1px solid rgba(105,240,174,0.35);
+  border-radius: 20px;
+  color: #69f0ae;
+  font-size: .85rem;
+  font-weight: 600;
+  margin: 1rem auto .5rem;
+  width: fit-content;
+}
+.option-btn--readonly {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.spectator-mode #spec-timer-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
