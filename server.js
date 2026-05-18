@@ -6,7 +6,8 @@ const rateLimit = require('express-rate-limit');
 const {
   createRoom, createRoomHttp,
   joinRoom, joinRoomHttp,
-  attachPlayerWs, getRoom,
+  joinSpectator,
+  attachPlayerWs, attachSpectatorWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
   nextQuestion, submitAnswer, deleteRoom
 } = require('./src/rooms');
@@ -164,6 +165,7 @@ function onTimerEnd(room, onTick, onEnd) {
 // WebSocket message handlers
 wss.on('connection', (ws) => {
   let playerId = null;
+  let spectatorId = null;
   let roomCode = null;
 
   ws.on('message', (raw) => {
@@ -177,22 +179,36 @@ wss.on('connection', (ws) => {
           ws.send(JSON.stringify({ type: 'error', message: 'playerId required for reconnect' }));
           return;
         }
-        const room = attachPlayerWs(msg.playerId, ws);
-        if (!room) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Player not found' }));
+        // Try reconnecting as a player first, then as a spectator
+        let room = attachPlayerWs(msg.playerId, ws);
+        if (room) {
+          playerId = msg.playerId;
+          roomCode = room.code;
+          const isHost = room.hostId === playerId;
+          ws.send(JSON.stringify({
+            type: 'reconnected',
+            code: roomCode,
+            playerId,
+            isHost,
+            state: room.state,
+            players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
+          }));
           return;
         }
-        playerId = msg.playerId;
-        roomCode = room.code;
-        const isHost = room.hostId === playerId;
-        ws.send(JSON.stringify({
-          type: 'reconnected',
-          code: roomCode,
-          playerId,
-          isHost,
-          state: room.state,
-          players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
-        }));
+        room = attachSpectatorWs(msg.playerId, ws);
+        if (room) {
+          spectatorId = msg.playerId;
+          roomCode = room.code;
+          ws.send(JSON.stringify({
+            type: 'reconnected',
+            code: roomCode,
+            spectatorId,
+            isSpectator: true,
+            state: room.state
+          }));
+          return;
+        }
+        ws.send(JSON.stringify({ type: 'error', message: 'Player not found' }));
         break;
       }
 
@@ -228,6 +244,24 @@ wss.on('connection', (ws) => {
         }));
         // Notify existing players
         broadcast(result.room, { type: 'player_joined', players: playerList });
+        break;
+      }
+
+      case 'join_spectator': {
+        const result = joinSpectator(msg.code, ws, msg.name || 'Spectator');
+        if (result.error) {
+          ws.send(JSON.stringify({ type: 'error', message: result.error }));
+          return;
+        }
+        spectatorId = result.spectatorId;
+        roomCode = result.room.code;
+        ws.send(JSON.stringify({
+          type: 'spectator_joined',
+          code: roomCode,
+          spectatorId,
+          isSpectator: true,
+          state: result.room.state
+        }));
         break;
       }
 
@@ -268,6 +302,13 @@ wss.on('connection', (ws) => {
       if (room) {
         const player = room.players.get(playerId);
         if (player) player.ws = null;
+      }
+    }
+    if (spectatorId && roomCode) {
+      const room = attachSpectatorWs(spectatorId, null);
+      if (room) {
+        const spectator = room.spectators.get(spectatorId);
+        if (spectator) spectator.ws = null;
       }
     }
   });

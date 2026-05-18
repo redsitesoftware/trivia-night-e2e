@@ -23,6 +23,7 @@ function createRoom(hostWs, hostName) {
     hostId,
     state: 'lobby',
     players: new Map([[hostId, { id: hostId, name: hostName, score: 0, ws: hostWs }]]),
+    spectators: new Map(),
     questions: [],
     currentQuestion: -1,
     timer: null,
@@ -96,6 +97,13 @@ function broadcast(room, message) {
   for (const player of room.players.values()) {
     if (player.ws && player.ws.readyState === 1) {
       player.ws.send(data);
+    }
+  }
+  // Spectators receive the same read-only payload; no answer-submission fields are
+  // present in any broadcast message so the payload is safe to share as-is.
+  for (const spectator of room.spectators.values()) {
+    if (spectator.ws && spectator.ws.readyState === 1) {
+      spectator.ws.send(data);
     }
   }
 }
@@ -175,6 +183,33 @@ function submitAnswer(room, playerId, answerIndex) {
 }
 
 /**
+ * Add a spectator to a room. Spectators receive all broadcast events read-only
+ * but cannot submit answers or affect game state.
+ */
+function joinSpectator(code, ws, spectatorName) {
+  const room = rooms.get(code.toUpperCase());
+  if (!room) return { error: 'Room not found' };
+  const spectatorId = uuidv4();
+  room.spectators.set(spectatorId, { id: spectatorId, name: spectatorName, ws });
+  return { room, spectatorId };
+}
+
+/**
+ * Attach (or update) the WebSocket for an existing spectator in a room.
+ */
+function attachSpectatorWs(spectatorId, ws) {
+  for (const room of rooms.values()) {
+    const spectator = room.spectators.get(spectatorId);
+    if (spectator) {
+      spectator.ws = ws;
+      return room;
+    }
+  }
+  return null;
+}
+
+
+/**
  * Delete a room by code, clearing any active timer and removing all associated data.
  * Returns the deleted room object, or null if the room was not found.
  */
@@ -195,7 +230,9 @@ module.exports = {
   createRoomHttp,
   joinRoom,
   joinRoomHttp,
+  joinSpectator,
   attachPlayerWs,
+  attachSpectatorWs,
   getRoom,
   getRoomByPlayer,
   getLeaderboard,
