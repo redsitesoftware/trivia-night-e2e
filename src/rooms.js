@@ -4,6 +4,22 @@ const { recordScore } = require('./scoreHistory');
 
 const MAX_PLAYERS = 8;
 const QUESTION_TIME_SECS = 30;
+const TIMER_MIN = 10;
+const TIMER_MAX = 120;
+
+/**
+ * Validate a questionTimeSecs value.
+ * Returns null on success, or an error string on failure.
+ */
+function validateTimerSeconds(val) {
+  if (typeof val !== 'number' || !Number.isInteger(val)) {
+    return 'questionTimeSecs must be an integer';
+  }
+  if (val < TIMER_MIN || val > TIMER_MAX) {
+    return `questionTimeSecs must be between ${TIMER_MIN} and ${TIMER_MAX}`;
+  }
+  return null;
+}
 const rooms = new Map();
 
 function generateJoinCode() {
@@ -29,7 +45,8 @@ function createRoom(hostWs, hostName) {
     timerStartedAt: null,
     answeredThisRound: new Set(),
     spectatorModeEnabled: true,
-    spectators: new Map()
+    spectators: new Map(),
+    questionTimeSecs: QUESTION_TIME_SECS
   };
   rooms.set(code, room);
   return { room, playerId: hostId };
@@ -121,6 +138,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
   room.timerStartedAt = Date.now();
   room.answeredThisRound = new Set();
 
+  const timeSecs = room.questionTimeSecs;
   broadcast(room, {
     type: 'question_start',
     index: room.currentQuestion,
@@ -128,10 +146,10 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     question: q.question,
     options: q.options,
     category: q.category,
-    timeLimit: QUESTION_TIME_SECS
+    timeLimit: timeSecs
   });
 
-  let remaining = QUESTION_TIME_SECS;
+  let remaining = timeSecs;
   room.timer = setInterval(() => {
     remaining--;
     onTimerTick(room, remaining);
@@ -169,8 +187,9 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   let points = 0;
   if (isCorrect) {
     const elapsed = (Date.now() - room.timerStartedAt) / 1000;
-    const remainingSeconds = Math.max(0, QUESTION_TIME_SECS - elapsed);
-    points = Math.round(1000 * remainingSeconds / QUESTION_TIME_SECS);
+    const timeSecs = room.questionTimeSecs;
+    const remainingSeconds = Math.max(0, timeSecs - elapsed);
+    points = Math.round(1000 * remainingSeconds / timeSecs);
     player.score += points;
   }
 
@@ -261,5 +280,6 @@ module.exports = {
   allPlayersAnswered,
   disconnectAllSpectators,
   broadcastToHost,
-  QUESTION_TIME_SECS
+  QUESTION_TIME_SECS,
+  validateTimerSeconds
 };
