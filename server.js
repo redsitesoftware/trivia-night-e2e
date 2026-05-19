@@ -155,13 +155,22 @@ app.post('/api/rooms/:code/answer', (req, res) => {
   if (!playerToken) return res.status(400).json({ error: 'playerToken required' });
   if (answer === undefined || answer === null) return res.status(400).json({ error: 'answer required' });
 
-  const result = submitAnswer(room, playerToken, answer, onTimerTick, onTimerEnd);
+  const result = submitAnswer(room, playerToken, answer);
   if (result.error) return res.status(400).json({ error: result.error });
 
   broadcast(room, {
     type: 'score-update',
     leaderboard: getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }))
   });
+
+  if (result.allAnswered && room.state === 'question') {
+    if (room.timer) {
+      clearInterval(room.timer);
+      room.timer = null;
+    }
+    room.state = 'leaderboard';
+    onTimerEnd(room, onTimerTick, onTimerEnd);
+  }
 
   res.json({ correct: result.correct, points: result.points, correctAnswer: result.correctAnswer });
 });
@@ -297,7 +306,7 @@ wss.on('connection', (ws) => {
       case 'submit_answer': {
         const room = getRoomByPlayer(playerId);
         if (!room) return;
-        const result = submitAnswer(room, playerId, msg.answer, onTimerTick, onTimerEnd);
+        const result = submitAnswer(room, playerId, msg.answer);
         if (result.error) {
           ws.send(JSON.stringify({ type: 'error', message: result.error }));
           return;
@@ -308,6 +317,14 @@ wss.on('connection', (ws) => {
           type: 'score-update',
           leaderboard: getLeaderboard(room).map(({ id, name, score }) => ({ id, name, score }))
         });
+        if (result.allAnswered && room.state === 'question') {
+          if (room.timer) {
+            clearInterval(room.timer);
+            room.timer = null;
+          }
+          room.state = 'leaderboard';
+          onTimerEnd(room, onTimerTick, onTimerEnd);
+        }
         break;
       }
 

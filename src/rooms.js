@@ -138,6 +138,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     if (remaining <= 0) {
       clearInterval(room.timer);
       room.timer = null;
+      room.state = 'leaderboard';
       onTimerEnd(room, onTimerTick, onTimerEnd);
     }
   }, 1000);
@@ -173,12 +174,13 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
     player.score += points;
   }
 
-  const allAnswered = room.answeredThisRound.size === room.players.size;
+  const allAnswered = allPlayersAnswered(room);
   if (allAnswered && onTimerTick && onTimerEnd) {
     if (room.timer) {
       clearInterval(room.timer);
       room.timer = null;
     }
+    room.state = 'leaderboard';
     onTimerEnd(room, onTimerTick, onTimerEnd);
   }
 
@@ -197,6 +199,12 @@ function removeSpectator(room, spectatorId) {
 
 function getSpectatorCount(room) {
   return room.spectators.size;
+}
+
+function allPlayersAnswered(room) {
+  if (!room || room.state !== 'question') return false;
+  if (room.players.size === 0) return false;
+  return room.answeredThisRound.size >= room.players.size;
 }
 
 function disconnectAllSpectators(room, noticeMessage) {
@@ -250,6 +258,7 @@ module.exports = {
   joinAsSpectator,
   removeSpectator,
   getSpectatorCount,
+  allPlayersAnswered,
   disconnectAllSpectators,
   broadcastToHost,
   QUESTION_TIME_SECS
