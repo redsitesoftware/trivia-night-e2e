@@ -129,6 +129,8 @@ describe('Countdown uses room value', () => {
     expect(tickValues[0]).toBe(59); // 60 - 1
 
     jest.useRealTimers();
+  });
+});
 
 const request = require('supertest');
 const { app, server } = require('../../server');
