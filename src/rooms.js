@@ -121,6 +121,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
   room.timerStartedAt = Date.now();
   room.answeredThisRound = new Set();
 
+  const timeSecs = room.questionTimeSecs ?? QUESTION_TIME_SECS;
   broadcast(room, {
     type: 'question_start',
     index: room.currentQuestion,
@@ -128,10 +129,10 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     question: q.question,
     options: q.options,
     category: q.category,
-    timeLimit: QUESTION_TIME_SECS
+    timeLimit: timeSecs
   });
 
-  let remaining = QUESTION_TIME_SECS;
+  let remaining = timeSecs;
   room.timer = setInterval(() => {
     remaining--;
     onTimerTick(room, remaining);
@@ -168,9 +169,10 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   const isCorrect = answerIndex === q.answer;
   let points = 0;
   if (isCorrect) {
+    const timeSecs = room.questionTimeSecs ?? QUESTION_TIME_SECS;
     const elapsed = (Date.now() - room.timerStartedAt) / 1000;
-    const remainingSeconds = Math.max(0, QUESTION_TIME_SECS - elapsed);
-    points = Math.round(1000 * remainingSeconds / QUESTION_TIME_SECS);
+    const remainingSeconds = Math.max(0, timeSecs - elapsed);
+    points = Math.round(1000 * remainingSeconds / timeSecs);
     player.score += points;
   }
 
@@ -218,6 +220,14 @@ function disconnectAllSpectators(room, noticeMessage) {
   room.spectators.clear();
 }
 
+function setQuestionTimeSecs(room, value) {
+  if (!Number.isInteger(value) || value < 10 || value > 120) {
+    return { error: 'questionTimeSecs must be an integer between 10 and 120' };
+  }
+  room.questionTimeSecs = value;
+  return { ok: true };
+}
+
 function broadcastToHost(room, message) {
   const host = room.players.get(room.hostId);
   if (host && host.ws && host.ws.readyState === 1) {
@@ -261,5 +271,6 @@ module.exports = {
   allPlayersAnswered,
   disconnectAllSpectators,
   broadcastToHost,
+  setQuestionTimeSecs,
   QUESTION_TIME_SECS
 };
