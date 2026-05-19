@@ -122,6 +122,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
   room.timerStartedAt = Date.now();
   room.answeredThisRound = new Set();
 
+  const timeSecs = room.questionTimeSecs;
   broadcast(room, {
     type: 'question_start',
     index: room.currentQuestion,
@@ -129,10 +130,10 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     question: q.question,
     options: q.options,
     category: q.category,
-    timeLimit: room.questionTimeSecs
+    timeLimit: timeSecs
   });
 
-  let remaining = room.questionTimeSecs;
+  let remaining = timeSecs;
   room.timer = setInterval(() => {
     remaining--;
     onTimerTick(room, remaining);
@@ -170,8 +171,9 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   let points = 0;
   if (isCorrect) {
     const elapsed = (Date.now() - room.timerStartedAt) / 1000;
-    const remainingSeconds = Math.max(0, room.questionTimeSecs - elapsed);
-    points = Math.round(1000 * remainingSeconds / room.questionTimeSecs);
+    const timeSecs = room.questionTimeSecs;
+    const remainingSeconds = Math.max(0, timeSecs - elapsed);
+    points = Math.round(1000 * remainingSeconds / timeSecs);
     player.score += points;
   }
 
