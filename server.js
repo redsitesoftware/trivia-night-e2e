@@ -215,13 +215,6 @@ function onTimerTick(room, remaining) {
   broadcast(room, { type: 'timer_tick', remaining });
 }
 
-function validateTimerSeconds(val) {
-  if (!Number.isInteger(val) || val < 10 || val > 120) {
-    return { valid: false, error: 'seconds must be an integer between 10 and 120' };
-  }
-  return { valid: true };
-}
-
 function onTimerEnd(room, onTick, onEnd) {
   const q = room.questions[room.currentQuestion];
   const leaderboard = getLeaderboard(room);
@@ -398,9 +391,9 @@ wss.on('connection', (ws) => {
           ws.send(JSON.stringify({ type: 'error', message: 'Timer can only be set while in the lobby' }));
           return;
         }
-        const { valid, error } = validateTimerSeconds(msg.seconds);
-        if (!valid) {
-          ws.send(JSON.stringify({ type: 'error', message: error }));
+        const timerErr = validateTimerSeconds(msg.seconds);
+        if (timerErr) {
+          ws.send(JSON.stringify({ type: 'error', message: timerErr }));
           return;
         }
         room.questionTimeSecs = msg.seconds;
