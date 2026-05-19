@@ -29,7 +29,8 @@ function createRoom(hostWs, hostName) {
     timerStartedAt: null,
     answeredThisRound: new Set(),
     spectatorModeEnabled: true,
-    spectators: new Map()
+    spectators: new Map(),
+    questionTimeSecs: QUESTION_TIME_SECS
   };
   rooms.set(code, room);
   return { room, playerId: hostId };
@@ -121,6 +122,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
   room.timerStartedAt = Date.now();
   room.answeredThisRound = new Set();
 
+  const timeLimit = room.questionTimeSecs;
   broadcast(room, {
     type: 'question_start',
     index: room.currentQuestion,
@@ -128,10 +130,10 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     question: q.question,
     options: q.options,
     category: q.category,
-    timeLimit: QUESTION_TIME_SECS
+    timeLimit
   });
 
-  let remaining = QUESTION_TIME_SECS;
+  let remaining = timeLimit;
   room.timer = setInterval(() => {
     remaining--;
     onTimerTick(room, remaining);
@@ -169,8 +171,8 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   let points = 0;
   if (isCorrect) {
     const elapsed = (Date.now() - room.timerStartedAt) / 1000;
-    const remainingSeconds = Math.max(0, QUESTION_TIME_SECS - elapsed);
-    points = Math.round(1000 * remainingSeconds / QUESTION_TIME_SECS);
+    const remainingSeconds = Math.max(0, room.questionTimeSecs - elapsed);
+    points = Math.round(1000 * remainingSeconds / room.questionTimeSecs);
     player.score += points;
   }
 

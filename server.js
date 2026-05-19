@@ -132,6 +132,33 @@ app.post('/api/rooms/:code/join', (req, res) => {
   });
 });
 
+// POST /api/rooms/:roomId/timer — set question timer duration (host only, lobby only)
+app.post('/api/rooms/:roomId/timer', (req, res) => {
+  const code = String(req.params.roomId).toUpperCase();
+  const room = getRoom(code);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+
+  if (room.started || room.state !== 'lobby') {
+    return res.status(400).json({ error: 'Cannot change timer after game has started' });
+  }
+
+  const { hostToken } = req.body || {};
+  if (!hostToken || room.hostId !== hostToken) {
+    return res.status(403).json({ error: 'Only the host can set the timer' });
+  }
+
+  const rawDuration = (req.body.duration === undefined || req.body.duration === null)
+    ? 30
+    : req.body.duration;
+  const duration = Number(rawDuration);
+  if (!Number.isInteger(duration) || duration < 10 || duration > 120) {
+    return res.status(400).json({ error: 'duration must be an integer between 10 and 120' });
+  }
+
+  room.questionTimeSecs = duration;
+  res.status(200).json({ duration });
+});
+
 // DELETE /api/rooms/:id — delete a room and all its associated data
 app.delete('/api/rooms/:id', (req, res) => {
   const code = String(req.params.id).toUpperCase();
@@ -325,6 +352,28 @@ wss.on('connection', (ws) => {
           room.state = 'leaderboard';
           onTimerEnd(room, onTimerTick, onTimerEnd);
         }
+        break;
+      }
+
+      case 'set_timer': {
+        const room = getRoomByPlayer(playerId);
+        if (!room || room.hostId !== playerId) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Only the host can set the timer' }));
+          return;
+        }
+        if (room.started || room.state !== 'lobby') {
+          ws.send(JSON.stringify({ type: 'error', message: 'Cannot change timer after game has started' }));
+          return;
+        }
+        const duration = (msg.duration === undefined || msg.duration === null)
+          ? 30
+          : msg.duration;
+        if (!Number.isInteger(duration) || duration < 10 || duration > 120) {
+          ws.send(JSON.stringify({ type: 'error', message: 'duration must be an integer between 10 and 120' }));
+          return;
+        }
+        room.questionTimeSecs = duration;
+        ws.send(JSON.stringify({ type: 'timer_set', duration }));
         break;
       }
 
