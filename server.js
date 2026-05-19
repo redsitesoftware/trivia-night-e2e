@@ -8,7 +8,7 @@ const {
   joinRoom, joinRoomHttp,
   attachPlayerWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
-  nextQuestion, submitAnswer, deleteRoom,
+  nextQuestion, submitAnswer, setTimer, deleteRoom,
   joinAsSpectator, removeSpectator, getSpectatorCount,
   disconnectAllSpectators, broadcastToHost
 } = require('./src/rooms');
@@ -343,6 +343,21 @@ wss.on('connection', (ws) => {
           spectatorModeEnabled: room.spectatorModeEnabled,
           spectatorCount: getSpectatorCount(room)
         }));
+        break;
+      }
+
+      case 'set_timer': {
+        const room = getRoomByPlayer(playerId);
+        if (!room || room.hostId !== playerId) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Only the host can set the timer' }));
+          return;
+        }
+        const result = setTimer(room, msg.duration);
+        if (result.error) {
+          ws.send(JSON.stringify({ type: 'error', message: result.error }));
+          return;
+        }
+        ws.send(JSON.stringify({ type: 'timer_set', duration: result.duration }));
         break;
       }
     }

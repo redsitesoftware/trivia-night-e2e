@@ -29,7 +29,8 @@ function createRoom(hostWs, hostName) {
     timerStartedAt: null,
     answeredThisRound: new Set(),
     spectatorModeEnabled: true,
-    spectators: new Map()
+    spectators: new Map(),
+    questionTimerSecs: QUESTION_TIME_SECS
   };
   rooms.set(code, room);
   return { room, playerId: hostId };
@@ -121,6 +122,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
   room.timerStartedAt = Date.now();
   room.answeredThisRound = new Set();
 
+  const timeLimit = room.questionTimerSecs;
   broadcast(room, {
     type: 'question_start',
     index: room.currentQuestion,
@@ -128,10 +130,10 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     question: q.question,
     options: q.options,
     category: q.category,
-    timeLimit: QUESTION_TIME_SECS
+    timeLimit
   });
 
-  let remaining = QUESTION_TIME_SECS;
+  let remaining = timeLimit;
   room.timer = setInterval(() => {
     remaining--;
     onTimerTick(room, remaining);
@@ -169,8 +171,9 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   let points = 0;
   if (isCorrect) {
     const elapsed = (Date.now() - room.timerStartedAt) / 1000;
-    const remainingSeconds = Math.max(0, QUESTION_TIME_SECS - elapsed);
-    points = Math.round(1000 * remainingSeconds / QUESTION_TIME_SECS);
+    const timerSecs = room.questionTimerSecs;
+    const remainingSeconds = Math.max(0, timerSecs - elapsed);
+    points = Math.round(1000 * remainingSeconds / timerSecs);
     player.score += points;
   }
 
@@ -185,6 +188,21 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   }
 
   return { correct: isCorrect, points, correctAnswer: q.answer, allAnswered };
+}
+
+/**
+ * Set the question timer duration for a room.
+ * Only allowed while the room is in the lobby state.
+ * Returns { error } if invalid, otherwise updates room.questionTimerSecs.
+ */
+function setTimer(room, duration) {
+  if (room.state !== 'lobby') return { error: 'Timer can only be set before the game starts' };
+  const secs = Number(duration);
+  if (!Number.isInteger(secs) || secs < 10 || secs > 120) {
+    return { error: 'Timer duration must be an integer between 10 and 120' };
+  }
+  room.questionTimerSecs = secs;
+  return { duration: secs };
 }
 
 function joinAsSpectator(room, ws) {
@@ -254,6 +272,7 @@ module.exports = {
   startGame,
   nextQuestion,
   submitAnswer,
+  setTimer,
   deleteRoom,
   joinAsSpectator,
   removeSpectator,
