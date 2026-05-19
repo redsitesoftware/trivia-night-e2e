@@ -29,7 +29,8 @@ function createRoom(hostWs, hostName) {
     timerStartedAt: null,
     answeredThisRound: new Set(),
     spectatorModeEnabled: true,
-    spectators: new Map()
+    spectators: new Map(),
+    questionTimeSecs: 30
   };
   rooms.set(code, room);
   return { room, playerId: hostId };
