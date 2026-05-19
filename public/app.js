@@ -121,6 +121,17 @@ function handleMessage(msg) {
       showGameOver(msg.leaderboard);
       break;
 
+    case 'timer_set': {
+      const statusEl = document.getElementById('timer-set-status');
+      if (statusEl) {
+        statusEl.textContent = `✅ Timer set to ${msg.duration}s`;
+        statusEl.className = 'timer-set-status success';
+        clearTimeout(statusEl._hideTimer);
+        statusEl._hideTimer = setTimeout(() => statusEl.classList.add('hidden'), 3000);
+      }
+      break;
+    }
+
     case 'error':
       alert(msg.message);
       break;
@@ -157,6 +168,10 @@ function resetState() {
   }
   retryCount = 0;
   hideReconnectBanner();
+  const timerInput = document.getElementById('timer-duration');
+  if (timerInput) { timerInput.disabled = false; timerInput.value = 30; }
+  const statusEl = document.getElementById('timer-set-status');
+  if (statusEl) statusEl.className = 'timer-set-status hidden';
   state = { playerId: null, roomCode: null, playerName: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
 }
 
@@ -181,6 +196,12 @@ async function joinRoom() {
 
 function startGame() {
   send({ type: 'start_game' });
+}
+
+function setTimerDuration(value) {
+  const duration = parseInt(value, 10);
+  if (isNaN(duration) || duration < 10 || duration > 120) return;
+  send({ type: 'set_timer', duration });
 }
 
 /* ===== Lobby ===== */
@@ -211,6 +232,10 @@ function showQuestion(msg) {
   state.selectedAnswer = null;
   state.timerMax = msg.timeLimit;
   state.timerRemaining = msg.timeLimit;
+
+  // Disable timer input once game is in progress
+  const timerInput = document.getElementById('timer-duration');
+  if (timerInput) timerInput.disabled = true;
 
   document.getElementById('q-category').textContent = msg.category;
   document.getElementById('q-progress').textContent = `Question ${msg.index + 1} of ${msg.total}`;

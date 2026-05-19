@@ -8,7 +8,7 @@ const {
   joinRoom, joinRoomHttp,
   attachPlayerWs, getRoom,
   getRoomByPlayer, getLeaderboard, broadcast, startGame,
-  nextQuestion, submitAnswer, deleteRoom,
+  nextQuestion, submitAnswer, setTimer, deleteRoom,
   joinAsSpectator, removeSpectator, getSpectatorCount,
   disconnectAllSpectators, broadcastToHost
 } = require('./src/rooms');
@@ -408,17 +408,12 @@ wss.on('connection', (ws) => {
           ws.send(JSON.stringify({ type: 'error', message: 'Only the host can set the timer' }));
           return;
         }
-        if (room.state !== 'lobby') {
-          ws.send(JSON.stringify({ type: 'error', message: 'Timer can only be set while in the lobby' }));
+        const result = setTimer(room, msg.duration);
+        if (result.error) {
+          ws.send(JSON.stringify({ type: 'error', message: result.error }));
           return;
         }
-        const { valid, error } = validateTimerSeconds(msg.seconds);
-        if (!valid) {
-          ws.send(JSON.stringify({ type: 'error', message: error }));
-          return;
-        }
-        room.questionTimeSecs = msg.seconds;
-        broadcast(room, { type: 'timer_updated', seconds: msg.seconds });
+        ws.send(JSON.stringify({ type: 'timer_set', duration: result.duration }));
         break;
       }
     }

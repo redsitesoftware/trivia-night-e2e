@@ -190,6 +190,21 @@ function submitAnswer(room, playerId, answerIndex, onTimerTick, onTimerEnd) {
   return { correct: isCorrect, points, correctAnswer: q.answer, allAnswered };
 }
 
+/**
+ * Set the question timer duration for a room.
+ * Only allowed while the room is in the lobby state.
+ * Returns { error } if invalid, otherwise updates room.questionTimeSecs.
+ */
+function setTimer(room, duration) {
+  if (room.state !== 'lobby') return { error: 'Timer can only be set before the game starts' };
+  const secs = Number(duration);
+  if (!Number.isInteger(secs) || secs < 10 || secs > 120) {
+    return { error: 'Timer duration must be an integer between 10 and 120' };
+  }
+  room.questionTimeSecs = secs;
+  return { duration: secs };
+}
+
 function joinAsSpectator(room, ws) {
   const spectatorId = uuidv4();
   room.spectators.set(spectatorId, { id: spectatorId, ws });
@@ -265,6 +280,7 @@ module.exports = {
   startGame,
   nextQuestion,
   submitAnswer,
+  setTimer,
   deleteRoom,
   joinAsSpectator,
   removeSpectator,
