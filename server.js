@@ -180,6 +180,13 @@ function onTimerTick(room, remaining) {
   broadcast(room, { type: 'timer_tick', remaining });
 }
 
+function validateTimerSeconds(val) {
+  if (!Number.isInteger(val) || val < 10 || val > 120) {
+    return { valid: false, error: 'seconds must be an integer between 10 and 120' };
+  }
+  return { valid: true };
+}
+
 function onTimerEnd(room, onTick, onEnd) {
   const q = room.questions[room.currentQuestion];
   const leaderboard = getLeaderboard(room);
@@ -343,6 +350,26 @@ wss.on('connection', (ws) => {
           spectatorModeEnabled: room.spectatorModeEnabled,
           spectatorCount: getSpectatorCount(room)
         }));
+        break;
+      }
+
+      case 'set_timer': {
+        const room = getRoomByPlayer(playerId);
+        if (!room || room.hostId !== playerId) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Only the host can set the timer' }));
+          return;
+        }
+        if (room.state !== 'lobby') {
+          ws.send(JSON.stringify({ type: 'error', message: 'Timer can only be set while in the lobby' }));
+          return;
+        }
+        const { valid, error } = validateTimerSeconds(msg.seconds);
+        if (!valid) {
+          ws.send(JSON.stringify({ type: 'error', message: error }));
+          return;
+        }
+        room.questionTimeSecs = msg.seconds;
+        broadcast(room, { type: 'timer_updated', seconds: msg.seconds });
         break;
       }
     }
