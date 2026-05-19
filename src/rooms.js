@@ -4,6 +4,22 @@ const { recordScore } = require('./scoreHistory');
 
 const MAX_PLAYERS = 8;
 const QUESTION_TIME_SECS = 30;
+const TIMER_MIN = 10;
+const TIMER_MAX = 120;
+
+/**
+ * Validate a questionTimeSecs value.
+ * Returns null on success, or an error string on failure.
+ */
+function validateTimerSeconds(val) {
+  if (typeof val !== 'number' || !Number.isInteger(val)) {
+    return 'questionTimeSecs must be an integer';
+  }
+  if (val < TIMER_MIN || val > TIMER_MAX) {
+    return `questionTimeSecs must be between ${TIMER_MIN} and ${TIMER_MAX}`;
+  }
+  return null;
+}
 const rooms = new Map();
 
 function generateJoinCode() {
@@ -264,5 +280,6 @@ module.exports = {
   allPlayersAnswered,
   disconnectAllSpectators,
   broadcastToHost,
-  QUESTION_TIME_SECS
+  QUESTION_TIME_SECS,
+  validateTimerSeconds
 };
