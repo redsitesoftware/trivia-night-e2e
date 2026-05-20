@@ -16,6 +16,7 @@
     <button class="btn btn-primary" onclick="showCreateRoom()">Create Room</button>
     <button class="btn btn-secondary" onclick="showJoinRoom()">Join Room</button>
     <button class="btn btn-ghost btn-spectator" onclick="showSpectatorJoin()">👁 Watch as Spectator</button>
+    <button id="mute-toggle" class="btn btn-ghost" onclick="toggleMute()" aria-label="Toggle sound">🔊 Sound On</button>
   </div>
 </div>
 
@@ -163,6 +164,7 @@
   </div>
 </div>
 
+<script src="soundManager.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

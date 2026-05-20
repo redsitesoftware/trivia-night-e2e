@@ -1,3 +1,14 @@
+/* ===== Sound / Mute toggle ===== */
+function toggleMute() {
+  if (soundManager.isMuted()) {
+    soundManager.unmute();
+    document.getElementById('mute-toggle').textContent = '🔊 Sound On';
+  } else {
+    soundManager.mute();
+    document.getElementById('mute-toggle').textContent = '🔇 Sound Off';
+  }
+}
+
 /* ===== State ===== */
 let ws = null;
 let retryCount = 0;
