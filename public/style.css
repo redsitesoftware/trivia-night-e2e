@@ -295,6 +295,30 @@ input[type=text]:focus { border-color: #e94560; }
 .podium-place:nth-child(2) .podium-block { height: 55px; background: rgba(192,192,192,0.2); border: 2px solid silver; }
 .podium-place:nth-child(3) .podium-block { height: 40px; background: rgba(205,127,50,0.2); border: 2px solid #cd7f32; }
 
+/* Mute button */
+.question-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  position: relative;
+}
+
+.btn-mute {
+  position: absolute;
+  right: 0;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+  padding: .25rem .5rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: background .15s;
+}
+.btn-mute:hover { background: rgba(255,255,255,0.2); }
+
 /* Spectator */
 .btn-spectator { border: 1px solid rgba(255,255,255,0.2); margin-top: .25rem; }
 
