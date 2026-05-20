@@ -20,13 +20,13 @@ describe('setTimer', () => {
   });
 
   test('defaults to QUESTION_TIME_SECS', () => {
-    expect(room.questionTimerSecs).toBe(QUESTION_TIME_SECS);
+    expect(room.questionTimeSecs).toBe(QUESTION_TIME_SECS);
   });
 
   test('sets valid duration in lobby', () => {
     const result = setTimer(room, 60);
     expect(result).toEqual({ duration: 60 });
-    expect(room.questionTimerSecs).toBe(60);
+    expect(room.questionTimeSecs).toBe(60);
   });
 
   test('accepts boundary values 10 and 120', () => {
@@ -37,13 +37,13 @@ describe('setTimer', () => {
   test('rejects duration below 10', () => {
     const result = setTimer(room, 5);
     expect(result.error).toBeDefined();
-    expect(room.questionTimerSecs).toBe(QUESTION_TIME_SECS);
+    expect(room.questionTimeSecs).toBe(QUESTION_TIME_SECS);
   });
 
   test('rejects duration above 120', () => {
     const result = setTimer(room, 200);
     expect(result.error).toBeDefined();
-    expect(room.questionTimerSecs).toBe(QUESTION_TIME_SECS);
+    expect(room.questionTimeSecs).toBe(QUESTION_TIME_SECS);
   });
 
   test('rejects non-integer duration', () => {

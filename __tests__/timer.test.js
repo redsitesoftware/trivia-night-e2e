@@ -191,25 +191,24 @@ describe('WebSocket set_timer handler', () => {
     });
   }, 10000);
 
-  it('sets the timer and responds with timer_set', (done) => {
+  it('sets the timer and broadcasts timer_updated', (done) => {
     const ws = connect();
     ws.on('open', async () => {
       await createRoomWs(ws);
-      const reply = await sendAndReceive(ws, { type: 'set_timer', duration: 45 });
-      expect(reply.type).toBe('timer_set');
-      expect(reply.duration).toBe(45);
+      const reply = await sendAndReceive(ws, { type: 'set_timer', seconds: 45 });
+      expect(reply.type).toBe('timer_updated');
+      expect(reply.seconds).toBe(45);
       ws.close();
       done();
     });
   });
 
-  it('defaults duration to 30 when not supplied', (done) => {
+  it('rejects set_timer with no seconds field', (done) => {
     const ws = connect();
     ws.on('open', async () => {
       await createRoomWs(ws);
       const reply = await sendAndReceive(ws, { type: 'set_timer' });
-      expect(reply.type).toBe('timer_set');
-      expect(reply.duration).toBe(30);
+      expect(reply.type).toBe('error');
       ws.close();
       done();
     });
@@ -247,7 +246,7 @@ describe('WebSocket set_timer handler', () => {
 
       const reply = await sendAndReceive(ws, { type: 'set_timer', duration: 60 });
       expect(reply.type).toBe('error');
-      expect(reply.message).toMatch(/started/i);
+      expect(reply.message).toMatch(/lobby/i);
       ws.close();
       done();
     });
