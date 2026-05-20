@@ -419,28 +419,6 @@ wss.on('connection', (ws) => {
         break;
       }
 
-      case 'set_timer': {
-        const room = getRoomByPlayer(playerId);
-        if (!room || room.hostId !== playerId) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Only the host can set the timer' }));
-          return;
-        }
-        if (room.started || room.state !== 'lobby') {
-          ws.send(JSON.stringify({ type: 'error', message: 'Cannot change timer after game has started' }));
-          return;
-        }
-        const duration = (msg.duration === undefined || msg.duration === null)
-          ? 30
-          : msg.duration;
-        if (!Number.isInteger(duration) || duration < 10 || duration > 120) {
-          ws.send(JSON.stringify({ type: 'error', message: 'duration must be an integer between 10 and 120' }));
-          return;
-        }
-        room.questionTimeSecs = duration;
-        ws.send(JSON.stringify({ type: 'timer_set', duration }));
-        break;
-      }
-
       case 'toggle_spectator_mode': {
         const room = getRoomByPlayer(playerId);
         if (!room || room.hostId !== playerId) {
