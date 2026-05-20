@@ -96,14 +96,18 @@ function handleMessage(msg) {
       break;
 
     case 'question_start':
+      if (msg.index === 0) soundManager.play('round-start');
       showQuestion(msg);
       break;
 
     case 'timer_tick':
+      if (msg.remaining <= 5) soundManager.play('tick');
       updateTimer(msg.remaining);
       break;
 
     case 'answer_result':
+      if (msg.correct === true) soundManager.play('correct');
+      if (msg.correct === false) soundManager.play('wrong');
       showAnswerFeedback(msg);
       break;
 
@@ -123,6 +127,7 @@ function handleMessage(msg) {
       break;
 
     case 'game_over':
+      soundManager.play('game-over');
       showGameOver(msg.leaderboard);
       break;
 
@@ -420,10 +425,12 @@ function handleSpectatorMessage(msg) {
       document.getElementById('spec-lobby-msg').classList.add('hidden');
       document.getElementById('spec-game-wrap').classList.remove('hidden');
       document.getElementById('spec-gameover-wrap').classList.add('hidden');
+      if (msg.index === 0) soundManager.play('round-start');
       showSpectatorQuestion(msg);
       break;
 
     case 'timer_tick':
+      if (msg.remaining <= 5) soundManager.play('tick');
       updateSpectatorTimer(msg.remaining);
       break;
 
@@ -437,6 +444,7 @@ function handleSpectatorMessage(msg) {
       break;
 
     case 'game_over':
+      soundManager.play('game-over');
       showSpectatorGameOver(msg.leaderboard);
       break;
 
