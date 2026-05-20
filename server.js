@@ -132,11 +132,13 @@ app.post('/api/rooms/:code/join', (req, res) => {
   }
 
   const { room, playerId: playerToken } = result;
+  const playerList = [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }));
+  broadcast(room, { type: 'player_joined', players: playerList });
   res.status(200).json({
     playerToken,
     code: room.code,
     state: apiRoomState(room.state),
-    players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, score: p.score }))
+    players: playerList
   });
 });
 
