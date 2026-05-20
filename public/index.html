@@ -59,6 +59,13 @@
         </div>
         <div id="timer-set-status" class="timer-set-status hidden"></div>
       </div>
+      <div class="spectator-setting">
+        <label class="spectator-toggle-label">
+          <input type="checkbox" id="spectator-mode-toggle" checked onchange="toggleSpectatorMode(this.checked)">
+          👁 Allow Spectators
+        </label>
+        <div id="spectator-count" class="spectator-count">👁 Spectators: 0</div>
+      </div>
       <button class="btn btn-primary" onclick="startGame()" id="start-btn">Start Game</button>
       <p class="hint">Need at least 1 player. Up to 8 can join.</p>
     </div>
