@@ -117,6 +117,11 @@ function broadcast(room, message) {
       player.ws.send(data);
     }
   }
+  for (const spectator of room.spectators.values()) {
+    if (spectator.ws && spectator.ws.readyState === 1) {
+      spectator.ws.send(data);
+    }
+  }
 }
 
 function nextQuestion(room, onTimerTick, onTimerEnd) {
