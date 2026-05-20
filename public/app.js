@@ -11,7 +11,8 @@ let state = {
   timerRemaining: 30,
   answered: false,
   selectedAnswer: null,
-  leaderboard: []
+  leaderboard: [],
+  spectatorModeEnabled: true
 };
 
 /* ===== WebSocket ===== */
@@ -75,6 +76,10 @@ function handleMessage(msg) {
       state.isHost = msg.isHost;
       if (msg.state === 'lobby') {
         showLobby(msg.code, msg.players);
+        if (state.isHost) {
+          state.spectatorModeEnabled = msg.spectatorModeEnabled !== false;
+          updateSpectatorControls(state.spectatorModeEnabled, msg.spectatorCount || 0);
+        }
       }
       break;
 
@@ -132,6 +137,15 @@ function handleMessage(msg) {
       break;
     }
 
+    case 'spectator_mode_updated':
+      state.spectatorModeEnabled = msg.spectatorModeEnabled;
+      updateSpectatorControls(msg.spectatorModeEnabled, msg.spectatorCount);
+      break;
+
+    case 'spectator_count':
+      updateSpectatorCount(msg.count);
+      break;
+
     case 'error':
       alert(msg.message);
       break;
@@ -172,7 +186,7 @@ function resetState() {
   if (timerInput) { timerInput.disabled = false; timerInput.value = 30; }
   const statusEl = document.getElementById('timer-set-status');
   if (statusEl) statusEl.className = 'timer-set-status hidden';
-  state = { playerId: null, roomCode: null, playerName: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [] };
+  state = { playerId: null, roomCode: null, playerName: null, isHost: false, timerMax: 30, timerRemaining: 30, answered: false, selectedAnswer: null, leaderboard: [], spectatorModeEnabled: true };
 }
 
 /* ===== Room actions ===== */
@@ -202,6 +216,21 @@ function setTimerDuration(value) {
   const duration = parseInt(value, 10);
   if (isNaN(duration) || duration < 10 || duration > 120) return;
   send({ type: 'set_timer', duration });
+}
+
+function toggleSpectatorMode(enabled) {
+  send({ type: 'toggle_spectator_mode', enabled });
+}
+
+function updateSpectatorControls(enabled, count) {
+  const toggle = document.getElementById('spectator-mode-toggle');
+  if (toggle) toggle.checked = enabled;
+  updateSpectatorCount(count);
+}
+
+function updateSpectatorCount(count) {
+  const el = document.getElementById('spectator-count');
+  if (el) el.textContent = `👁 Spectators: ${count}`;
 }
 
 /* ===== Lobby ===== */
