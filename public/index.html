@@ -78,7 +78,10 @@
 <!-- SCREEN: Question -->
 <div id="screen-question" class="screen">
   <div class="question-header">
-    <div id="q-category" class="category-badge"></div>
+    <div class="question-header-top">
+      <div id="q-category" class="category-badge"></div>
+      <button id="mute-btn" class="btn-mute" onclick="toggleMute()" aria-label="Toggle mute">🔊</button>
+    </div>
     <div id="q-progress" class="progress-text"></div>
     <div id="timer-bar-wrap">
       <div id="timer-bar"></div>
@@ -136,7 +139,10 @@
 
   <div id="spec-game-wrap" class="hidden">
     <div class="question-header">
-      <div id="spec-q-category" class="category-badge"></div>
+      <div class="question-header-top">
+        <div id="spec-q-category" class="category-badge"></div>
+        <button id="spec-mute-btn" class="btn-mute" onclick="toggleMute()" aria-label="Toggle mute">🔊</button>
+      </div>
       <div id="spec-q-progress" class="progress-text"></div>
       <div id="spec-timer-bar-wrap">
         <div id="spec-timer-bar"></div>
@@ -163,6 +169,7 @@
   </div>
 </div>
 
+<script src="sound-manager.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -381,7 +381,28 @@ function showGameOver(leaderboard) {
   showScreen('screen-gameover');
 }
 
-/* ===== Spectator ===== */
+/* ===== Mute toggle ===== */
+function toggleMute() {
+  if (soundManager.isMuted()) {
+    soundManager.unmute();
+  } else {
+    soundManager.mute();
+  }
+  syncMuteButtons();
+}
+
+function syncMuteButtons() {
+  const icon = soundManager.isMuted() ? '🔇' : '🔊';
+  ['mute-btn', 'spec-mute-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = icon;
+  });
+}
+
+// Reflect persisted mute state on load
+syncMuteButtons();
+
+
 let specWs = null;
 let specState = { roomCode: null, timerMax: 30 };
 
