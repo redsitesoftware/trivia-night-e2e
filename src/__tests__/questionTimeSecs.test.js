@@ -132,6 +132,8 @@ describe('Countdown uses room value', () => {
   });
 });
 
+// ─── HTTP API integration tests ───────────────────────────────────────────────
+
 const request = require('supertest');
 const { app, server } = require('../../server');
 const { deleteRoom, validateTimerSeconds } = require('../rooms');

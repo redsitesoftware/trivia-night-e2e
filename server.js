@@ -196,6 +196,33 @@ app.post('/api/rooms/:code/start', (req, res) => {
   });
 });
 
+// POST /api/rooms/:code/start — start the game for a room (host only)
+app.post('/api/rooms/:code/start', (req, res) => {
+  const code = String(req.params.code).toUpperCase();
+  const room = getRoom(code);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+
+  const { hostToken } = req.body || {};
+  if (!hostToken) return res.status(400).json({ error: 'hostToken required' });
+  if (room.hostId !== hostToken) return res.status(403).json({ error: 'Only the host can start the game' });
+
+  if (req.body.questionTimeSecs !== undefined) {
+    const err = validateTimerSeconds(req.body.questionTimeSecs);
+    if (err) return res.status(400).json({ error: err });
+    room.questionTimeSecs = req.body.questionTimeSecs;
+  }
+
+  if (!startGame(room, onTimerTick, onTimerEnd)) {
+    return res.status(409).json({ error: 'Cannot start game in current state' });
+  }
+
+  res.status(200).json({
+    code: room.code,
+    state: apiRoomState(room.state),
+    questionTimeSecs: room.questionTimeSecs
+  });
+});
+
 // DELETE /api/rooms/:id — delete a room and all its associated data
 app.delete('/api/rooms/:id', (req, res) => {
   const code = String(req.params.id).toUpperCase();
