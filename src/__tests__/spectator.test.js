@@ -1,7 +1,8 @@
 'use strict';
 
-// Tests for spectator room extensions (issue #261) and
-// toggle_spectator_mode WS handler (issue #272).
+// Tests for spectator room extensions (issue #261),
+// toggle_spectator_mode WS handler (issue #272), and
+// broadcast() spectator delivery (issue #377).
 
 beforeEach(() => {
   jest.resetModules();
@@ -86,6 +87,42 @@ describe('Room state extensions (issue #261)', () => {
     broadcastToHost(room, { type: 'spectator_count', count: 3 });
     expect(hostWs.messages).toContainEqual({ type: 'spectator_count', count: 3 });
     expect(playerWs.messages).toHaveLength(0);
+  });
+});
+
+describe('broadcast() spectator delivery (issue #377)', () => {
+  it('sends message to spectators with readyState === 1', () => {
+    const { createRoom, joinAsSpectator, broadcast } = getRooms();
+    const { room } = createRoom(mockWs(), 'Host');
+    const spectatorWs = mockWs(1);
+    joinAsSpectator(room, spectatorWs);
+    broadcast(room, { type: 'timer_tick', remaining: 29 });
+    expect(spectatorWs.messages).toContainEqual({ type: 'timer_tick', remaining: 29 });
+  });
+
+  it('skips spectators with closed ws (readyState !== 1)', () => {
+    const { createRoom, joinAsSpectator, broadcast } = getRooms();
+    const { room } = createRoom(mockWs(), 'Host');
+    const closedWs = mockWs(3); // WebSocket.CLOSED = 3
+    joinAsSpectator(room, closedWs);
+    broadcast(room, { type: 'timer_tick', remaining: 29 });
+    expect(closedWs.messages).toHaveLength(0);
+  });
+
+  it('skips spectators with null ws without throwing', () => {
+    const { createRoom, joinAsSpectator, broadcast } = getRooms();
+    const { room } = createRoom(mockWs(), 'Host');
+    joinAsSpectator(room, null);
+    expect(() => broadcast(room, { type: 'test_event' })).not.toThrow();
+  });
+
+  it('spectators do NOT receive broadcastToHost() messages', () => {
+    const { createRoom, joinAsSpectator, broadcastToHost } = getRooms();
+    const { room } = createRoom(mockWs(), 'Host');
+    const spectatorWs = mockWs(1);
+    joinAsSpectator(room, spectatorWs);
+    broadcastToHost(room, { type: 'spectator_count', count: 1 });
+    expect(spectatorWs.messages).toHaveLength(0);
   });
 });
 
