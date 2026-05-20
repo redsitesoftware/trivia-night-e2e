@@ -29,6 +29,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version });
 });
 
+// GET /api/ping — lightweight health alias (closes #402)
+app.get('/api/ping', (req, res) => {
+  res.json({ pong: true });
+});
+
 // GET /api/stats — server-wide stats: total rooms, active players, and app version
 app.get('/api/stats', (req, res) => {
   const { rooms } = require('./src/rooms');
