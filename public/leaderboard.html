@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard 🏆 – Trivia Night</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .leaderboard-page { width: 100%; max-width: 600px; padding: 1rem; }
+
+  .lb-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+
+  .lb-table th {
+    text-align: left;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    padding: .4rem .75rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .lb-table th:first-child,
+  .lb-table td:first-child { text-align: center; width: 3rem; }
+
+  .lb-table td {
+    padding: .65rem .75rem;
+    font-size: .95rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .lb-table tbody tr:last-child td { border-bottom: none; }
+
+  .lb-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+
+  .rank-cell { font-size: 1.1rem; }
+  .score-cell { font-weight: 700; color: #e94560; }
+  .date-cell { font-size: .8rem; color: rgba(255,255,255,0.45); }
+
+  .empty-msg {
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    padding: 2rem 0;
+    font-size: .95rem;
+  }
+
+  .ws-status {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    margin-left: .5rem;
+    vertical-align: middle;
+    transition: background .3s;
+  }
+  .ws-status.connected { background: #69f0ae; }
+  .ws-status.error { background: #e94560; }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+  }
+
+  .back-link {
+    font-size: .9rem;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    transition: color .15s;
+  }
+  .back-link:hover { color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="leaderboard-page">
+  <div class="card">
+    <div class="page-header">
+      <a href="/" class="back-link">← Back to Lobby</a>
+      <span id="ws-indicator" class="ws-status" title="Live updates"></span>
+    </div>
+
+    <h2>🏆 Leaderboard</h2>
+
+    <div id="lb-container">
+      <p class="empty-msg">Loading…</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  function rankEmoji(rank) {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return rank;
+  }
+
+  function renderTable(entries) {
+    const container = document.getElementById('lb-container');
+
+    if (!entries || entries.length === 0) {
+      container.innerHTML = '<p class="empty-msg">No scores yet</p>';
+      return;
+    }
+
+    const rows = entries.map((entry, i) => {
+      const rank = i + 1;
+      const name = entry.nickname || entry.playerName || '—';
+      const score = entry.score ?? 0;
+      const date = entry.timestamp
+        ? new Date(entry.timestamp).toLocaleDateString()
+        : '—';
+      return `
+        <tr>
+          <td class="rank-cell">${rankEmoji(rank)}</td>
+          <td>${escapeHtml(name)}</td>
+          <td class="score-cell">${score}</td>
+          <td class="date-cell">${date}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table class="lb-table" aria-label="Top scores">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Score</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Fetch initial data
+  fetch('/api/leaderboard')
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(data => renderTable(data))
+    .catch(() => {
+      document.getElementById('lb-container').innerHTML =
+        '<p class="empty-msg">Failed to load scores. Please refresh.</p>';
+    });
+
+  // Live WebSocket updates
+  const wsIndicator = document.getElementById('ws-indicator');
+
+  function connectWs() {
+    const ws = new WebSocket(`ws://${location.host}`);
+
+    ws.addEventListener('open', () => {
+      wsIndicator.className = 'ws-status connected';
+      wsIndicator.title = 'Live updates active';
+    });
+
+    ws.addEventListener('message', (event) => {
+      let msg;
+      try { msg = JSON.parse(event.data); } catch { return; }
+      if (msg.type === 'persistent_leaderboard_update' && Array.isArray(msg.scores)) {
+        renderTable(msg.scores);
+      }
+    });
+
+    ws.addEventListener('close', () => {
+      wsIndicator.className = 'ws-status error';
+      wsIndicator.title = 'Disconnected – retrying…';
+      setTimeout(connectWs, 3000);
+    });
+
+    ws.addEventListener('error', () => {
+      wsIndicator.className = 'ws-status error';
+    });
+  }
+
+  connectWs();
+</script>
+</body>
+</html>
