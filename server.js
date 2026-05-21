@@ -190,7 +190,7 @@ app.post('/api/rooms/:code/start', (req, res) => {
     room.questionTimeSecs = req.body.questionTimeSecs;
   }
 
-  if (!startGame(room, onTimerTick, onTimerEnd)) {
+  if (!startGame(room, onTimerTick, onTimerEnd, onGameOver)) {
     return res.status(409).json({ error: 'Cannot start game in current state' });
   }
 
@@ -217,7 +217,7 @@ app.post('/api/rooms/:code/start', (req, res) => {
     room.questionTimeSecs = req.body.questionTimeSecs;
   }
 
-  if (!startGame(room, onTimerTick, onTimerEnd)) {
+  if (!startGame(room, onTimerTick, onTimerEnd, onGameOver)) {
     return res.status(409).json({ error: 'Cannot start game in current state' });
   }
 
@@ -265,7 +265,7 @@ app.post('/api/rooms/:code/answer', (req, res) => {
       room.timer = null;
     }
     room.state = 'leaderboard';
-    onTimerEnd(room, onTimerTick, onTimerEnd);
+    onTimerEnd(room, onTimerTick, onTimerEnd, onGameOver);
   }
 
   res.json({ correct: result.correct, points: result.points, correctAnswer: result.correctAnswer });
@@ -276,7 +276,21 @@ function onTimerTick(room, remaining) {
   broadcast(room, { type: 'timer_tick', remaining });
 }
 
-function onTimerEnd(room, onTick, onEnd) {
+function onGameOver() {
+  const topScores = getTopScores(10);
+  const leaderboard = topScores.map((entry, i) => ({
+    rank: i + 1,
+    name: entry.nickname,
+    score: entry.score,
+    date: entry.timestamp,
+  }));
+  const msg = JSON.stringify({ type: 'persistent_leaderboard_update', leaderboard });
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) client.send(msg);
+  });
+}
+
+function onTimerEnd(room, onTick, onEnd, onGameOver) {
   const q = room.questions[room.currentQuestion];
   const leaderboard = getLeaderboard(room);
   broadcast(room, {
@@ -291,7 +305,7 @@ function onTimerEnd(room, onTick, onEnd) {
   setTimeout(() => {
     if (room.state === 'leaderboard') {
       room.state = 'question';
-      nextQuestion(room, onTick, onEnd);
+      nextQuestion(room, onTick, onEnd, onGameOver);
     }
   }, 5000);
 }
@@ -393,7 +407,7 @@ wss.on('connection', (ws) => {
           ws.send(JSON.stringify({ type: 'error', message: 'Only the host can start the game' }));
           return;
         }
-        if (!startGame(room, onTimerTick, onTimerEnd)) {
+        if (!startGame(room, onTimerTick, onTimerEnd, onGameOver)) {
           ws.send(JSON.stringify({ type: 'error', message: 'Cannot start game in current state' }));
         }
         break;
@@ -419,7 +433,7 @@ wss.on('connection', (ws) => {
             room.timer = null;
           }
           room.state = 'leaderboard';
-          onTimerEnd(room, onTimerTick, onTimerEnd);
+          onTimerEnd(room, onTimerTick, onTimerEnd, onGameOver);
         }
         break;
       }
