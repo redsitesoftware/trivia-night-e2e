@@ -100,6 +100,11 @@ app.get('/api/leaderboard', (req, res) => {
   res.json(getTopScores(10));
 });
 
+// GET /leaderboard — serve the leaderboard HTML page (closes #431)
+app.get('/leaderboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'leaderboard.html'));
+});
+
 // Map internal room states to the API-facing state names
 function apiRoomState(state) {
   if (state === 'lobby') return 'waiting';
