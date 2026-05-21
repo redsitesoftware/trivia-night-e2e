@@ -223,4 +223,50 @@ describe('WebSocket game engine full-flow integration', () => {
       expect(typeof entry.score).toBe('number');
     }
   }, 30_000);
+
+  test('persistent_leaderboard_update is broadcast to all clients after game ends', async () => {
+    // Connect a third "spectator" client that is not in the room
+    const outsiderWs = await connectWs(server);
+
+    wsSend(hostWs, { type: 'start_game' });
+    await waitForMessage(hostWs, (m) => m.type === 'question_start' && m.index === 0);
+
+    // Listen for persistent_leaderboard_update on all three clients
+    const hostPLU = waitForMessage(hostWs, (m) => m.type === 'persistent_leaderboard_update');
+    const playerPLU = waitForMessage(playerWs, (m) => m.type === 'persistent_leaderboard_update');
+    const outsiderPLU = waitForMessage(outsiderWs, (m) => m.type === 'persistent_leaderboard_update');
+
+    for (let i = 0; i < 3; i++) {
+      wsSend(hostWs, { type: 'submit_answer', answer: 1 });
+      wsSend(playerWs, { type: 'submit_answer', answer: 1 });
+      await waitForMessage(hostWs, (m) => m.type === 'question_end');
+
+      if (i < 2) {
+        const nextQP = waitForMessage(hostWs, (m) => m.type === 'question_start' && m.index === i + 1);
+        jest.advanceTimersByTime(5000);
+        await nextQP;
+      }
+    }
+
+    jest.advanceTimersByTime(5000);
+
+    const [plu] = await Promise.all([hostPLU, playerPLU, outsiderPLU]);
+
+    expect(plu.type).toBe('persistent_leaderboard_update');
+    expect(Array.isArray(plu.leaderboard)).toBe(true);
+    expect(plu.leaderboard.length).toBeGreaterThan(0);
+    expect(plu.leaderboard.length).toBeLessThanOrEqual(10);
+    for (const entry of plu.leaderboard) {
+      expect(typeof entry.rank).toBe('number');
+      expect(typeof entry.name).toBe('string');
+      expect(typeof entry.score).toBe('number');
+      expect(typeof entry.date).toBe('string');
+    }
+    // Ranks should be sequential starting from 1
+    plu.leaderboard.forEach((entry, i) => {
+      expect(entry.rank).toBe(i + 1);
+    });
+
+    outsiderWs.close();
+  }, 30_000);
 });

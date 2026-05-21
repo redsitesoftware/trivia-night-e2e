@@ -124,7 +124,7 @@ function broadcast(room, message) {
   }
 }
 
-function nextQuestion(room, onTimerTick, onTimerEnd) {
+function nextQuestion(room, onTimerTick, onTimerEnd, onGameOver) {
   if (room.timer) clearInterval(room.timer);
   room.currentQuestion++;
 
@@ -136,6 +136,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
       recordScore({ playerName: entry.name, nickname: entry.nickname || entry.name, roomId: room.code, score: entry.score, timestamp: finishedAt });
     }
     broadcast(room, { type: 'game_over', leaderboard });
+    if (onGameOver) onGameOver();
     return;
   }
 
@@ -162,17 +163,17 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
       clearInterval(room.timer);
       room.timer = null;
       room.state = 'leaderboard';
-      onTimerEnd(room, onTimerTick, onTimerEnd);
+      onTimerEnd(room, onTimerTick, onTimerEnd, onGameOver);
     }
   }, 1000);
 }
 
-function startGame(room, onTimerTick, onTimerEnd) {
+function startGame(room, onTimerTick, onTimerEnd, onGameOver) {
   if (room.state !== 'lobby') return false;
   room.questions = getShuffledQuestions(10);
   room.currentQuestion = -1;
   room.state = 'question';
-  nextQuestion(room, onTimerTick, onTimerEnd);
+  nextQuestion(room, onTimerTick, onTimerEnd, onGameOver);
   return true;
 }
 
