@@ -62,6 +62,18 @@ describe('getTopScores(n) — sorted descending, capped at n', () => {
     expect(scores).toEqual([99, 55, 10]);
   });
 
+  it('breaks ties by timestamp descending (most recent first)', () => {
+    const f = tmpFile();
+    const { recordScore, getTopScores } = loadModule(f);
+
+    recordScore({ playerName: 'Older', roomId: 'r1', score: 50, timestamp: '2024-01-01T00:00:00.000Z' });
+    recordScore({ playerName: 'Newer', roomId: 'r1', score: 50, timestamp: '2024-06-01T00:00:00.000Z' });
+
+    const results = getTopScores(10);
+    expect(results[0].playerName).toBe('Newer');
+    expect(results[1].playerName).toBe('Older');
+  });
+
   it('caps results at n', () => {
     const f = tmpFile();
     const { recordScore, getTopScores } = loadModule(f);
