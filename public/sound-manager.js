@@ -1,33 +1,34 @@
-/* soundManager — client-side audio module */
+/* ===== soundManager =====
+ * Plays named WAV clips from /public/sounds/.
+ * Mute state is persisted in localStorage under the key `soundMuted`.
+ */
 const soundManager = (() => {
-  const STORAGE_KEY = 'soundMuted';
-  const SOUNDS = ['correct', 'wrong', 'tick', 'game-start', 'game-over'];
+  const SOUNDS = {
+    'correct':     '/sounds/correct.wav',
+    'wrong':       '/sounds/wrong.wav',
+    'tick':        '/sounds/tick.wav',
+    'round-start': '/sounds/round-start.wav',
+    'game-over':   '/sounds/game-over.wav',
+  };
 
-  let muted = localStorage.getItem(STORAGE_KEY) === 'true';
-
-  const cache = {};
-  SOUNDS.forEach(name => {
-    const audio = new Audio(`/sounds/${name}.wav`);
-    audio.preload = 'auto';
-    cache[name] = audio;
-  });
+  let muted = localStorage.getItem('soundMuted') === 'true';
 
   function play(eventName) {
     if (muted) return;
-    const audio = cache[eventName];
-    if (!audio) return;
-    const clone = audio.cloneNode();
-    clone.play().catch(() => {});
+    const src = SOUNDS[eventName];
+    if (!src) return;
+    const audio = new Audio(src);
+    audio.play().catch(() => { /* autoplay policy — silently ignore */ });
   }
 
   function mute() {
     muted = true;
-    localStorage.setItem(STORAGE_KEY, 'true');
+    localStorage.setItem('soundMuted', 'true');
   }
 
   function unmute() {
     muted = false;
-    localStorage.setItem(STORAGE_KEY, 'false');
+    localStorage.setItem('soundMuted', 'false');
   }
 
   function isMuted() {
