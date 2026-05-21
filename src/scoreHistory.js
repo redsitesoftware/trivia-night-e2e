@@ -57,7 +57,10 @@ function getTopScores(nOrOpts) {
     player = null;
   }
 
-  let results = [...history].sort((a, b) => b.score - a.score);
+  let results = [...history].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
   if (player) {
     const needle = player.toLowerCase();
     results = results.filter((entry) => entry.playerName.toLowerCase().includes(needle));

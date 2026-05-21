@@ -133,7 +133,7 @@ function nextQuestion(room, onTimerTick, onTimerEnd) {
     const leaderboard = getLeaderboard(room);
     const finishedAt = new Date().toISOString();
     for (const entry of leaderboard) {
-      recordScore({ playerName: entry.name, nickname: entry.nickname, roomId: room.code, score: entry.score, timestamp: finishedAt });
+      recordScore({ playerName: entry.name, nickname: entry.nickname || entry.name, roomId: room.code, score: entry.score, timestamp: finishedAt });
     }
     broadcast(room, { type: 'game_over', leaderboard });
     return;
